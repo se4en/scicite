@@ -39,8 +39,9 @@ from allennlp.commands.evaluate import evaluate
 from allennlp.commands.subcommand import Subcommand
 from allennlp.common.checks import ConfigurationError, check_for_gpu
 from allennlp.common import Params
-from allennlp.common.util import prepare_environment, prepare_global_logging, \
+from allennlp.common.util import prepare_environment, \
                                  get_frozen_and_tunable_parameter_names, dump_metrics
+from allennlp.common.logging import prepare_global_logging
 from allennlp.data import Vocabulary
 from allennlp.data.instance import Instance
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader

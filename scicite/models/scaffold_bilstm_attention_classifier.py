@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from allennlp.common import Params
 from allennlp.data import Instance
 from allennlp.data import Vocabulary
-from allennlp.data.dataset import Batch
+from allennlp.data import Batch
 from allennlp.data.fields import TextField, LabelField
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.tokenizers import Token
@@ -178,7 +178,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         output_dict['citation_text'] = citation_text['tokens']
         return output_dict
 
-    @overrides
+    #@overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         class_probabilities = F.softmax(output_dict['logits'], dim=-1)
         predictions = class_probabilities.cpu().data.numpy()

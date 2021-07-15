@@ -5,11 +5,11 @@ from unittest import TestCase
 
 from allennlp.common import Params
 from allennlp.data import DatasetReader, Vocabulary
-from allennlp.data.dataset import Batch
+from allennlp.data import Batch
 from allennlp.models import Model
 from pytest import approx
 from allennlp.models.archival import load_archive
-from allennlp.service.predictors import Predictor
+from allennlp.predictors import Predictor
 
 import sys
 sys.path.append(str(Path('.').absolute()))

@@ -7,7 +7,7 @@ from allennlp.common import Params
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import LabelField, TextField, MetadataField
 from allennlp.data.instance import Instance
-from allennlp.data.tokenizers import Tokenizer, WordTokenizer
+from allennlp.data.tokenizers import Tokenizer, SpacyTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
 from scicite.helper import regex_find_citation
@@ -27,7 +27,7 @@ class SciciteSectitleDatasetReader(DatasetReader):
                  ) -> None:
         super().__init__(lazy)
         self._clean_citation = clean_citation
-        self._tokenizer = tokenizer or WordTokenizer()
+        self._tokenizer = tokenizer or SpacyTokenizer()
         self._token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
@@ -96,7 +96,7 @@ class SciCiteWorthinessDataReader(DatasetReader):
                  ) -> None:
         super().__init__(lazy)
         self._clean_citation = clean_citation
-        self._tokenizer = tokenizer or WordTokenizer()
+        self._tokenizer = tokenizer or SpacyTokenizer()
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
                                     "tokens": SingleIdTokenIndexer()}

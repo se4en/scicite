@@ -6,7 +6,7 @@ from overrides import overrides
 
 from allennlp.common.util import JsonDict
 from allennlp.data import Instance
-from allennlp.service.predictors.predictor import Predictor
+from allennlp.predictors.predictor import Predictor
 
 from scicite.data import read_jurgens_jsonline
 from scicite.helper import JsonFloatEncoder

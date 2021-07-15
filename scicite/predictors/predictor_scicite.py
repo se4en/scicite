@@ -8,7 +8,7 @@ from overrides import overrides
 
 from allennlp.common.util import JsonDict
 from allennlp.data import Instance
-from allennlp.service.predictors.predictor import Predictor
+from allennlp.predictors.predictor import Predictor
 
 from scicite.data import Citation, read_s2_excerpt
 from scicite.helper import JsonFloatEncoder
