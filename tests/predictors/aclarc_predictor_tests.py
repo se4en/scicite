@@ -4,7 +4,8 @@ from pathlib import Path
 from unittest import TestCase
 
 from allennlp.common import Params
-from allennlp.data import DatasetReader, Vocabulary
+from allennlp.data.dataset_readers.dataset_reader import DatasetReader
+from allennlp.data import Vocabulary#, DatasetReader
 from allennlp.data import Batch
 from allennlp.models import Model
 from pytest import approx
@@ -52,12 +53,15 @@ class TestCitationClassifierPredictor(TestCase):
                   "cited_author_ids": ["T Joachims"],
                   "citation_id": "W04-1610_5"}
 
-        param_file = 'tests/fixtures/test-config-aclarc.json'
+        param_file = '/home/dmitry/cit_function/scicite/tests/fixtures/test-config-aclarc.json'
         dataset_file = 'tests/fixtures/aclarc-train.jsonl'
 
         self.param_file = param_file
         params = Params.from_file(self.param_file)
 
+        print(params['dataset_reader'])
+
+        #reader = AclarcDatasetReader.from_params(params['dataset_reader'])
         reader = DatasetReader.from_params(params['dataset_reader'])
         # The dataset reader might be lazy, but a lazy list here breaks some of our tests.
         instances = list(reader.read(str(dataset_file)))

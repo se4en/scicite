@@ -27,10 +27,11 @@ from tensorboardX import SummaryWriter
 
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError
-from allennlp.common.util import peak_memory_mb, gpu_memory_mb, dump_metrics
+from allennlp.common.util import peak_gpu_memory dump_metrics
 from allennlp.common.tqdm import Tqdm
 from allennlp.data.instance import Instance
-from allennlp.data.iterators.data_iterator import DataIterator
+from allennlp.data.data_loaders import DataLoader
+#from allennlp.data.iterators.data_iterator import DataIterator
 from allennlp.models.model import Model
 from allennlp.nn import util
 from allennlp.training.learning_rate_schedulers import LearningRateScheduler
@@ -162,7 +163,7 @@ class MultiTaskTrainer:
     def __init__(self,
                  model: Model,
                  optimizer: torch.optim.Optimizer,
-                 iterator: DataIterator,
+                 iterator: DataLoader,
                  train_dataset: Iterable[Instance],
                  train_dataset_aux: Iterable[Instance],
                  mixing_ratio: float = 0.17,
@@ -171,7 +172,7 @@ class MultiTaskTrainer:
                  validation_dataset_aux: Optional[Iterable] = None,
                  patience: Optional[int] = None,
                  validation_metric: str = "-loss",
-                 validation_iterator: DataIterator = None,
+                 validation_iterator: DataLoader = None,
                  shuffle: bool = True,
                  num_epochs: int = 20,
                  serialization_dir: Optional[str] = None,
@@ -186,7 +187,7 @@ class MultiTaskTrainer:
                  histogram_interval: int = None,
                  should_log_parameter_statistics: bool = True,
                  should_log_learning_rate: bool = False,
-                 iterator_aux: Optional[DataIterator] = None) -> None:
+                 iterator_aux: Optional[DataLoader] = None) -> None:
         """
         Parameters
         ----------
@@ -491,8 +492,7 @@ class MultiTaskTrainer:
         Trains one epoch and returns metrics.
         """
         logger.info("Epoch %d/%d", epoch, self._num_epochs - 1)
-        logger.info(f"Peak CPU memory usage MB: {peak_memory_mb()}")
-        for gpu, memory in gpu_memory_mb().items():
+        for gpu, memory in peak_gpu_memory().items():
             logger.info(f"GPU {gpu} memory usage MB: {memory}")
 
         train_loss = 0.0
@@ -1058,8 +1058,8 @@ class MultiTaskTrainer:
     def from_params(cls,
                     model: Model,
                     serialization_dir: str,
-                    iterator: DataIterator,
-                    iterator_aux: DataIterator,
+                    iterator: DataLoader,
+                    iterator_aux: DataLoader,
                     train_data: Iterable[Instance],
                     train_data_aux: Iterable[Instance],
                     mixing_ratio: float,
@@ -1067,7 +1067,7 @@ class MultiTaskTrainer:
                     validation_data: Optional[Iterable[Instance]],
                     validation_data_aux: Optional[Iterable[Instance]],
                     params: Params,
-                    validation_iterator: DataIterator = None) -> 'MultiTaskTrainer':
+                    validation_iterator: DataLoader = None) -> 'MultiTaskTrainer':
 
         patience = params.pop_int("patience", None)
         validation_metric = params.pop("validation_metric", "-loss")

@@ -49,7 +49,8 @@ from allennlp.common.util import prepare_environment, prepare_global_logging, \
 from allennlp.data import Vocabulary
 from allennlp.data.instance import Instance
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.iterators.data_iterator import DataIterator
+from allennlp.data.data_loaders import DataLoader
+#from allennlp.data.iterators.data_iterator import DataIterator
 from allennlp.models.archival import archive_model, CONFIG_NAME
 from allennlp.models.model import Model, _DEFAULT_WEIGHTS
 from allennlp.training.trainer import Trainer
@@ -340,15 +341,15 @@ def train_model(params: Params,
     # Initializing the model can have side effect of expanding the vocabulary
     vocab.save_to_files(os.path.join(serialization_dir, "vocabulary"))
 
-    iterator = DataIterator.from_params(params.pop("iterator"))
+    iterator = DataLoader.from_params(params.pop("iterator"))
     iterator.index_with(vocab)
 
-    iterator_aux = DataIterator.from_params(params.pop("iterator_aux"))
+    iterator_aux = DataLoader.from_params(params.pop("iterator_aux"))
     iterator_aux.index_with(vocab)
 
     validation_iterator_params = params.pop("validation_iterator", None)
     if validation_iterator_params:
-        validation_iterator = DataIterator.from_params(validation_iterator_params)
+        validation_iterator = DataLoader.from_params(validation_iterator_params)
         validation_iterator.index_with(vocab)
     else:
         validation_iterator = None

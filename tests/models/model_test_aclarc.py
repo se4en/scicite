@@ -10,7 +10,8 @@ import sys
 import os
 from pathlib import Path
 
-from allennlp.data import DatasetReader, DataIterator
+from allennlp.data import DatasetReader#, DataIterator
+from allennlp.data.data_loaders import DataLoader
 from numpy.testing import assert_allclose
 
 from allennlp.models import load_archive
@@ -57,8 +58,8 @@ class CitationClassifierTest(ModelTestCase):
         iterator_params = params['iterator']
         iterator_params2 = Params(copy.deepcopy(iterator_params.as_dict()))
 
-        iterator = DataIterator.from_params(iterator_params)
-        iterator2 = DataIterator.from_params(iterator_params2)
+        iterator = DataLoader.from_params(iterator_params)
+        iterator2 = DataLoader.from_params(iterator_params2)
 
         # We'll check that even if we index the dataset with each model separately, we still get
         # the same result out.
