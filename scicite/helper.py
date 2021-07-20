@@ -1,10 +1,13 @@
 """ Module including helper functions for feature extraction and other stuff including metrics, jsonhandler, etc"""
+from typing import Dict, List
 import json
 from collections import Counter
 import logging
 import re
 import numpy as np
 import string
+
+from scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
 
 logger = logging.getLogger('classifier')
 
@@ -186,3 +189,203 @@ def is_sentence(sentence: str) -> bool:
     if sum([c in string.printable for c in sentence]) / num_chars < MIN_PRINTABLE_CHAR_RATIO:
         return False
     return True
+
+# ------------------------------ NEW PART ------------------------------------------------------------------------------
+
+
+def _is_in_lexicon(lexicon, sentence, si, ArgType=None, required_pos=None):
+    for cur_phrase in lexicon:
+        phrase = cur_phrase.split(' ')
+
+        # Can't match phrases that would extend beyond this sentence
+        if len(phrase) + si > len(sentence):
+            continue
+
+        found = True
+        found_arg = False
+
+        for i, lemma in enumerate(phrase):
+            # Check the word form too, just to prevent weird lemmatization
+            # issues (usually for adjectives)
+            if not (sentence[si+i]['lemma'] == lemma or sentence[si+i]['word'] == lemma) \
+                    or not (required_pos is None or sentence[si+i]['pos'][0] == required_pos):
+                found = False
+                break
+            if ArgType is not None and sentence[si+i]['ArgType'] == ArgType:
+                found_arg = True
+        if found and (ArgType is None or found_arg):
+            #if len(phrase) > 1:
+            #    print '~~~~~~Matched %s' % (' '.join(phrase))
+            return True, len(phrase)
+
+    return False, 0
+
+
+def find(pattern: List[str], sentence: List[Dict], must_have_subj_value: bool, feature=None) -> int:
+    # if debug is not None:
+    #    print json.dumps(sentence)
+
+    # if debug is not None:
+    #     print('\n\ntesting %s (%s) against "%s" (must be subj? %s)' % (pattern, feature, debug, must_have_subj_value))
+
+    # For each position in the sentence
+    for sent_pos in range(0, (len(sentence) - len(pattern)) + 1):
+
+        match = True
+        is_subj = False
+        # This is the adjustment to the sentence's token offset based on finding
+        # a MWE match in a lexicon
+        k = 0
+
+        # if debug is not None:
+        #     print('starting search at ' + sentence[sent_pos]['word'])
+
+        for pat_pos in range(0, len(pattern)):
+
+            # if debug is not None:
+            #     print('%d:%d:%d -> "%s" in "%s"?' % (sent_pos, pat_pos, k, sentence[sent_pos + pat_pos + k]['lemma'], pattern[pat_pos]))
+
+            # Check that we won't search outside the sentence length due to
+            # finding a MWE lexicon entry at the end of the sentence
+            if sent_pos + pat_pos + k >= len(sentence):
+                # if debug is not None:
+                #     print('moved beyond end of sentence :(')
+                match = False
+                break
+
+            # print '%d %s' % (sent_pos+pat_pos+k, sentence[sent_pos+pat_pos+k]['ArgType'])
+            if sentence[sent_pos + pat_pos + k]['ArgType'] == 'subj':
+                is_subj = True
+
+            cur_pat_i = pattern[pat_pos]
+            # if debug is not None:
+            #     print('Testing %d/%d: %s' % (pat_pos + 1, pat_len, cur_pat_i))
+
+            # If this is a category that we have to look up
+            if cur_pat_i[0] == '@':
+                label = cur_pat_i[1:]
+
+                # if debug is not None:
+                #     print('Checking if "%s" is in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], label))
+
+                lexicon = None
+                required_pos = None
+                if label in ALL_CONCEPT_LEXICONS:
+                    lexicon = ALL_CONCEPT_LEXICONS[label]
+                elif label in ALL_ACTION_LEXICONS:
+                    lexicon = ALL_ACTION_LEXICONS[label]
+                    required_pos = 'V'
+
+                if lexicon is None:
+                    # raise BaseException(("unknown lexicon ref: '%s' in %s, %s" % (label, feature, pattern)))
+                    return -1
+
+                (is_match, matched_phrased_length) = _is_in_lexicon(lexicon, sentence, \
+                                                                    sent_pos+pat_pos+k, required_pos=required_pos)
+
+                # print 'found %s (%d) in %s? %s (%d)' % (sentence[sent_pos+pat_pos+k]['lemma'], sent_pos+pat_pos+k, label, is_match, matched_phrased_length)
+
+                if not is_match:
+                    match = False
+                    break
+                # else:
+                #     if debug is not None:
+                #         print('YAY:: "%s" is in set %s in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], label, debug))
+
+                # If we did find a match, recognize that some phrases are
+                # multi-word expressions, so we may need to skip ahead more than
+                # one token.  Note that we were already going to skip one token
+                # anyway, so substract 1 from the phrase length
+                k += (matched_phrased_length - 1)
+
+                # if not sentence[sent_pos+pat_pos+k]['lemma'] not in lexicon:
+                #    if debug is not None:
+                #        print '"%s" is not in set %s in %s' % (sentence[sent_pos+pat_pos+k]['lemma'], label, debug)
+                #    match = False
+                #    break
+                # else:
+                #    if debug is not None:
+
+            elif cur_pat_i == 'SELFCITATION':
+                # if debug is not None:
+                #     print('Checking if "%s" is %s' % (sentence[sent_pos + pat_pos + k]['pos'][0], cur_pat_i[1]))
+
+                if sentence[sent_pos + pat_pos + k]['word'] != cur_pat_i:
+                    # if debug is not None:
+                    #     print('"%s" is not a %s in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], cur_pat_i, debug))
+                    match = False
+                    break
+                # else:
+                #     if debug is not None:
+                #         print('YAY:: "%s" is a %s in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], cur_pat_i, debug))
+
+            elif cur_pat_i == 'CITATION':
+                # if debug is not None:
+                #     print('Checking if "%s" is %s' % (sentence[sent_pos + pat_pos + k]['pos'][0], cur_pat_i[1]))
+
+                if not sentence[sent_pos + pat_pos + k]['word'].endswith(cur_pat_i):
+                    # if debug is not None:
+                    #     print('"%s" is not a %s in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], cur_pat_i, debug))
+                    match = False
+                    break
+                # else:
+                #     if debug is not None:
+                #         print('YAY:: "%s" is a %s in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], cur_pat_i, debug))
+
+
+            # Not sure if this is entirely right...
+            elif cur_pat_i == 'CREF':
+                if sentence[sent_pos + pat_pos + k]['pos'] != 'CD' \
+                        or sentence[sent_pos + pat_pos + k]['word'] != 'CREF':
+                    match = False
+                    break
+
+            # If this is POS-match
+            elif cur_pat_i[0] == '#':
+                # if debug is not None:
+                #     print('Checking if "%s" is  %s' % (sentence[sent_pos + pat_pos + k]['pos'][0], cur_pat_i[1]))
+                # NOTE: we compare only the coarsest POS tag level (N/V/J)
+                #
+                # NOTE Check for weird POS-tagging issues with verbal adjectives
+                if sentence[sent_pos + pat_pos + k]['pos'][0] != cur_pat_i[1] \
+                        and not (cur_pat_i[1] == 'J' and sentence[sent_pos + pat_pos + k]['pos'] == 'VBN'):
+                    match = False
+                    break
+                    # if debug is not None:
+                    #     print('"%s" is not %s in %s' % (sentence[sent_pos + pat_pos + k]['pos'][0], cur_pat_i[1], debug))
+                # else:
+                #     if debug is not None:
+                #         print('"YAY:: %s" is %s in %s' % (sentence[sent_pos + pat_pos + k]['pos'][0], cur_pat_i[1], debug))
+
+            # Otherwise, we have to match the word
+            else:
+                # if debug is not None:
+                #     print('Checking if "%s" is %s' % (sentence[sent_pos + pat_pos + k]['lemma'], cur_pat_i))
+                if sentence[sent_pos + pat_pos + k]['lemma'] != cur_pat_i:
+                    # if debug is not None:
+                    #     print('"%s" is not %s in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], cur_pat_i, debug))
+                    match = False
+                    break
+                # else:
+                #     if debug is not None:
+                #         print('YAY:: "%s" is %s in %s' % (sentence[sent_pos + pat_pos + k]['lemma'], cur_pat_i, debug))
+
+        if match and (must_have_subj_value is not None) and (is_subj is not must_have_subj_value):
+            # if debug is not None:
+            #     print(
+            #         'needed a subject for %s but this isn\'t one (%s != %s)' % (feature, is_subj, must_have_subj_value))
+            continue
+
+        # TODO: confirm we can skip 'pat_pos' items so sent_pos += pat_pos
+        if match:
+            # if debug is not None:
+            #     print('match!\n\n')
+            return sent_pos
+        # else:
+        #     if debug is not None:
+        #         print('no match (%d, %d, %d)\n\n' % (sent_pos, pat_pos, k))
+
+    # if debug is not None:
+    #     print('\n\n')
+
+    return -1

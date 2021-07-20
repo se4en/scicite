@@ -1,6 +1,5 @@
 """ Data reader for AllenNLP """
 
-
 from typing import Dict, List
 import json
 import jsonlines
@@ -18,9 +17,10 @@ from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
 from scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
+from scicite.resources.lexicons import FORMULAIC_PATTERNS, AGENT_PATTERNS
 from scicite.data import DataReaderJurgens
 from scicite.data import read_jurgens_jsonline
-from scicite.compute_features import is_in_lexicon
+from scicite.compute_features import is_in_lexicon, get_formulaic_features, get_agent_features
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -48,12 +48,14 @@ class AclarcDatasetReader(DatasetReader):
         Indexers used to define input token representations. Defaults to ``{"tokens":
         SingleIdTokenIndexer()}``.
     """
+
     def __init__(self,
                  lazy: bool = False,
                  tokenizer: Tokenizer = None,
                  token_indexers: Dict[str, TokenIndexer] = None,
                  use_lexicon_features: bool = False,
                  use_sparse_lexicon_features: bool = False,
+                 use_pattern_features: bool = False,
                  with_elmo: bool = False
                  ) -> None:
         super().__init__(lazy)
@@ -65,7 +67,12 @@ class AclarcDatasetReader(DatasetReader):
             self._token_indexers = {"tokens": SingleIdTokenIndexer()}
         self.use_lexicon_features = use_lexicon_features
         self.use_sparse_lexicon_features = use_sparse_lexicon_features
-        if self.use_lexicon_features or self.use_sparse_lexicon_features:
+        self.use_pattern_features = use_pattern_features
+        if self.use_pattern_features:
+            self.formulaic_patterns = FORMULAIC_PATTERNS
+            self.agent_patterns = AGENT_PATTERNS
+            self.lexicons = {**ALL_ACTION_LEXICONS, **ALL_CONCEPT_LEXICONS}
+        elif self.use_lexicon_features or self.use_sparse_lexicon_features:
             self.lexicons = {**ALL_ACTION_LEXICONS, **ALL_CONCEPT_LEXICONS}
 
     @overrides
@@ -76,7 +83,9 @@ class AclarcDatasetReader(DatasetReader):
                 citation_text=citation.text,
                 intent=citation.intent,
                 citing_paper_id=citation.citing_paper_id,
-                cited_paper_id=citation.cited_paper_id
+                cited_paper_id=citation.cited_paper_id,
+                sents_before=citation.sents_before,
+                sents_after=citation.sents_after
             )
 
     @overrides
@@ -94,8 +103,8 @@ class AclarcDatasetReader(DatasetReader):
                          extended_context: str = None,
                          section_number: int = None,
                          section_title: str = None,
-                         sents_before: List[str] = None,
-                         sents_after: List[str] = None,
+                         sents_before: List[List] = None,
+                         sents_after: List[List] = None,
                          cite_marker_begin: int = None,
                          cite_marker_end: int = None,
                          cleaned_cite_text: str = None,
@@ -118,6 +127,34 @@ class AclarcDatasetReader(DatasetReader):
             lexicon_features, _ = is_in_lexicon(self.lexicons, sent)
             fields["lexicon_features"] = ListField([LabelField(feature, skip_indexing=True)
                                                     for feature in lexicon_features])
+
+        if self.use_pattern_features:
+            # sents_before[0] - citation sentence
+            formulaic_features, _, _ = get_formulaic_features(sents_before[0], prefix='InCitSent:')
+            agent_features, _, _ = get_agent_features(sents_before[0], prefix='InCitSent:')
+
+            # compute patterns in clause
+            formulaic_clause_features = formulaic_features
+            agent_clause_features = agent_features
+            if len(sents_before) > 1:
+                for cur_sentence in sents_before[1:]:
+                    _formulaic_features, _, _ = get_formulaic_features(cur_sentence, prefix='InClause:')
+                    _agent_features, _, _ = get_agent_features(cur_sentence, prefix='InClause:')
+                    formulaic_clause_features = [f_1 or f_2 for f_1, f_2 in zip(formulaic_clause_features,
+                                                                                _formulaic_features)]
+                    agent_clause_features = [f_1 or f_2 for f_1, f_2 in zip(agent_clause_features,
+                                                                            _agent_features)]
+            for cur_sentence in sents_after:
+                _formulaic_features, _, _ = get_formulaic_features(cur_sentence, prefix='InClause:')
+                _agent_features, _, _ = get_agent_features(cur_sentence, prefix='InClause:')
+                formulaic_clause_features = [f_1 or f_2 for f_1, f_2 in zip(formulaic_clause_features,
+                                                                            _formulaic_features)]
+                agent_clause_features = [f_1 or f_2 for f_1, f_2 in zip(agent_clause_features,
+                                                                        _agent_features)]
+
+            fields["pattern_features"] = ListField([LabelField(feature, skip_indexing=True)
+                                                    for feature in formulaic_features + agent_features +
+                                                    formulaic_clause_features + agent_clause_features])
 
         if intent is not None:
             fields['labels'] = LabelField(intent)
