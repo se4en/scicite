@@ -177,9 +177,11 @@ class AclarcDatasetReader(DatasetReader):
         tokenizer = Tokenizer.from_params(params.pop('tokenizer', {}))
         use_lexicon_features = params.pop_bool("use_lexicon_features", False)
         use_sparse_lexicon_features = params.pop_bool("use_sparse_lexicon_features", False)
+        use_pattern_features = params.pop_bool("use_pattern_features", False)
         with_elmo = params.pop_bool("with_elmo", False)
         params.assert_empty(cls.__name__)
         return cls(lazy=lazy, tokenizer=tokenizer,
                    use_lexicon_features=use_lexicon_features,
                    use_sparse_lexicon_features=use_sparse_lexicon_features,
+                   use_pattern_features=use_pattern_features,
                    with_elmo=with_elmo)
