@@ -142,3 +142,6 @@ cython_debug/
 
 # model
 aclarc.tar.gz
+
+# big files
+scicite/data/elmo/elmo_2x4096_512_2048cnn_2xhighway_weights_PubMed_only.hdf5
