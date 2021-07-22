@@ -96,6 +96,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
                 citation_text: Dict[str, torch.LongTensor],
                 labels: torch.LongTensor = None,
                 lexicon_features: Optional[torch.IntTensor] = None,
+                pattern_features: Optional[torch.IntTensor] = None,
                 year_diff: Optional[torch.Tensor] = None,
                 citing_paper_id: Optional[str] = None,
                 cited_paper_id: Optional[str] = None,
@@ -130,7 +131,17 @@ class ScaffoldBilstmAttentionClassifier(Model):
         # In training mode, labels are the citation intents
         # If in predict_mode, predict the citation intents
         if labels is not None:
-            logits = self.classifier_feedforward(encoded_citation_text)
+            if pattern_features is not None:
+                # TODO conacatenate  pattern_features + encoded_citation_text
+                print("\n\nIn model FORWARD:")
+                print("Text encode type = ", type(encoded_citation_text))
+                print("Pattern features type = ", type(pattern_features))
+                print("\n\n")
+                logits = self.classifier_feedforward(encoded_citation_text)
+            else:
+                print("\n\nIn model FORWARD:\n\n")
+                logits = self.classifier_feedforward(encoded_citation_text)
+
             class_probs = F.softmax(logits, dim=1)
 
             output_dict = {"logits": logits}
@@ -264,6 +275,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
 
         use_lexicon = params.pop_bool("use_lexicon_features", False)
         use_sparse_lexicon_features = params.pop_bool("use_sparse_lexicon_features", False)
+        use_pattern_features = params.pop_bool("use_pattern_features", False)
         data_format = params.pop('data_format')
 
         report_auxiliary_metrics = params.pop_bool("report_auxiliary_metrics", False)

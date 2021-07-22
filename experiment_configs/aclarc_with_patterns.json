@@ -17,6 +17,7 @@ local DIM =
   "dataset_reader": {
     "type": "aclarc_dataset_reader",
     "use_sparse_lexicon_features": false,
+    "use_pattern_features": true,
     "with_elmo": std.extVar("elmo")
   },
   "dataset_reader_aux": {
@@ -27,16 +28,22 @@ local DIM =
     "type": "aclarc_cite_worthiness_data_reader",
      "with_elmo": std.extVar("elmo")
   },
+  //"train_data_path_aux": "data/acl-arc/scaffolds/sections-scaffold-train.jsonl",
   "train_data_path_aux": "/home/dmitry/cit_function/scicite/scicite/data/acl-arc/scaffolds/sections-scaffold-train.jsonl",
+  //"train_data_path_aux2": "data/acl-arc/scaffolds/cite-worthiness-scaffold-train.jsonl",
   "train_data_path_aux2": "/home/dmitry/cit_function/scicite/scicite/data/acl-arc/scaffolds/cite-worthiness-scaffold-train.jsonl",
+  //"train_data_path": "data/acl-arc/train.jsonl",
   "train_data_path": "/home/dmitry/cit_function/scicite/scicite/data/acl-arc/train.jsonl",
+  //"validation_data_path": "data/acl-arc/dev.jsonl",
   "validation_data_path": "/home/dmitry/cit_function/scicite/scicite/data/acl-arc/dev.jsonl",
+  //"test_data_path": "data/acl-arc/test.jsonl",
   "test_data_path": "/home/dmitry/cit_function/scicite/scicite/data/acl-arc/test.jsonl",
   "evaluate_on_test": true,
   "model": {
     "data_format": "jurgens",
     "with_elmo": std.extVar("elmo"),
     "use_sparse_lexicon_features": false,
+    "use_pattern_features": true,
     "type": "scaffold_bilstm_attention_classifier",
     "use_lexicon_features": false,
     "report_auxiliary_metrics": true,
@@ -79,7 +86,7 @@ local DIM =
       "num_layers": 1
     },
     "classifier_feedforward": {
-      "input_dim": 100,
+      "input_dim": 212, //100
       "num_layers": 2,
       "hidden_dims": [20, 6],
       "activations": ["relu", "linear"],
@@ -103,18 +110,18 @@ local DIM =
   "iterator": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 2
+    "batch_size": 2 //8
   },
-  /*"iterator_aux": {
+  "iterator_aux": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 2
+    "batch_size": 2 //8
   },
   "iterator_aux2": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 2
-  },*/
+    "batch_size": 2 //8
+  },
   "trainer": {
     "num_epochs": 5,
     "grad_clipping": 5.0,
