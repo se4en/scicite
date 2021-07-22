@@ -14,18 +14,18 @@ from allennlp.service.predictors import Predictor
 import sys
 sys.path.append(str(Path('.').absolute()))
 
-from scicite.training.train_multitask_two_tasks import train_model_from_file
-from scicite.constants import root_path
+from scicite.scicite.training.train_multitask_two_tasks import train_model_from_file
+from scicite.scicite.constants import root_path
 
 sys.path.append(root_path)
 
-from scicite.models.scaffold_bilstm_attention_classifier import ScaffoldBilstmAttentionClassifier
-from scicite.dataset_readers.citation_data_reader_scicite import SciciteDatasetReader
-from scicite.dataset_readers.citation_data_reader_scicite_aux import SciciteSectitleDatasetReader, SciCiteWorthinessDataReader
-from scicite.predictors.predictor_scicite import PredictorSciCite
-from scicite.dataset_readers.citation_data_reader_aclarc import AclarcDatasetReader
-from scicite.dataset_readers.citation_data_reader_aclarc_aux import AclSectionTitleDatasetReader, AclCiteWorthinessDatasetReader
-from scicite.predictors.predictor_acl_arc import CitationIntentPredictorACL
+from scicite.scicite.models.scaffold_bilstm_attention_classifier import ScaffoldBilstmAttentionClassifier
+from scicite.scicite.dataset_readers.citation_data_reader_scicite import SciciteDatasetReader
+from scicite.scicite.dataset_readers.citation_data_reader_scicite_aux import SciciteSectitleDatasetReader, SciCiteWorthinessDataReader
+from scicite.scicite.predictors.predictor_scicite import PredictorSciCite
+from scicite.scicite.dataset_readers.citation_data_reader_aclarc import AclarcDatasetReader
+from scicite.scicite.dataset_readers.citation_data_reader_aclarc_aux import AclSectionTitleDatasetReader, AclCiteWorthinessDatasetReader
+from scicite.scicite.predictors.predictor_acl_arc import CitationIntentPredictorACL
 
 # required so that our custom model + predictor + dataset reader
 # will be registered by name

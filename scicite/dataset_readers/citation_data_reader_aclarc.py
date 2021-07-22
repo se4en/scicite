@@ -16,15 +16,15 @@ from allennlp.data.instance import Instance
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
-from scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
-from scicite.resources.lexicons import FORMULAIC_PATTERNS, AGENT_PATTERNS
-from scicite.data import DataReaderJurgens
-from scicite.data import read_jurgens_jsonline
-from scicite.compute_features import is_in_lexicon, get_formulaic_features, get_agent_features
+from scicite.scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
+from scicite.scicite.resources.lexicons import FORMULAIC_PATTERNS, AGENT_PATTERNS
+from scicite.scicite.data import DataReaderJurgens
+from scicite.scicite.data import read_jurgens_jsonline
+from scicite.scicite.compute_features import is_in_lexicon, get_formulaic_features, get_agent_features
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
-from scicite.constants import S2_CATEGORIES, NONE_LABEL_NAME
+from scicite.scicite.constants import S2_CATEGORIES, NONE_LABEL_NAME
 
 
 @DatasetReader.register("aclarc_dataset_reader")
