@@ -1,4 +1,5 @@
 import operator
+import logging
 from copy import deepcopy
 from distutils.version import StrictVersion
 from typing import Dict, Optional
@@ -27,6 +28,7 @@ from scicite.scicite.constants import  Scicite_Format_Nested_Jsonlines
 
 import torch.nn as nn
 
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 @Model.register("scaffold_bilstm_attention_classifier")
 class ScaffoldBilstmAttentionClassifier(Model):
@@ -132,14 +134,9 @@ class ScaffoldBilstmAttentionClassifier(Model):
         # If in predict_mode, predict the citation intents
         if labels is not None:
             if pattern_features is not None:
-                # TODO conacatenate  pattern_features + encoded_citation_text
-                print("\n\nIn model FORWARD:")
-                print("Text encode type = ", type(encoded_citation_text))
-                print("Pattern features type = ", type(pattern_features))
-                print("\n\n")
-                logits = self.classifier_feedforward(encoded_citation_text)
+                feedforward_input = torch.cat((pattern_features, encoded_citation_text), 1)
+                logits = self.classifier_feedforward(feedforward_input)
             else:
-                print("\n\nIn model FORWARD:\n\n")
                 logits = self.classifier_feedforward(encoded_citation_text)
 
             class_probs = F.softmax(logits, dim=1)
