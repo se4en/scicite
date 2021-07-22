@@ -26,6 +26,7 @@ from torch.nn.parallel import replicate, parallel_apply
 from torch.nn.parallel.scatter_gather import scatter_kwargs, gather
 from tensorboardX import SummaryWriter
 
+from allennlp.models.archival import archive_model
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError
 from allennlp.common.util import peak_memory_mb, gpu_memory_mb, dump_metrics
@@ -555,7 +556,7 @@ class MultiTaskTrainer2:
         logger.info("Training")
         train_generator_tqdm = Tqdm.tqdm(train_generator,
                                          total=num_training_batches)
-        logger.info("After tqdm")
+        #logger.info("After tqdm")
 
         # logger.info(str(train_generator_tqdm.total))
         # for _ in train_generator_tqdm:
@@ -566,21 +567,21 @@ class MultiTaskTrainer2:
         # train_aux_generator_tqdm = Tqdm.tqdm(train_generator_aux,
         #                                      total=num_training_batches_aux)
         for batch, batch_aux, batch_aux2 in zip(train_generator_tqdm, train_generator_aux, train_generator_aux2):
-            logger.info("After for")
+            #logger.info("After for")
             batches_this_epoch += 1
             self._batch_num_total += 1
             batch_num_total = self._batch_num_total
 
-            logger.info("After batch_num")
+            #logger.info("After batch_num")
 
             self._log_histograms_this_batch = self._histogram_interval is not None and (
                     batch_num_total % self._histogram_interval == 0)
 
-            logger.info("After histograms")
+            #logger.info("After histograms")
 
             self._optimizer.zero_grad()
 
-            logger.info("After zero_grad")
+            #logger.info("After zero_grad")
 
             if multitask_training:
                 loss = self._batch_loss(batch,
@@ -590,11 +591,11 @@ class MultiTaskTrainer2:
             else:
                 loss = self._batch_loss(batch, for_training=True)
 
-            logger.info("Before backward")
+            #logger.info("Before backward")
 
             loss.backward()
 
-            logger.info("After backward")
+            #logger.info("After backward")
 
             train_loss += loss.item()
 
@@ -915,6 +916,11 @@ class MultiTaskTrainer2:
                     ((self._num_epochs - epoch_counter) / float(epoch - epoch_counter + 1) - 1)
                 formatted_time = str(datetime.timedelta(seconds=int(estimated_time_remaining)))
                 logger.info("Estimated training time remaining: %s", formatted_time)
+
+
+            logging.info(f"Save model after epoch {epochs_trained}.")
+            archive_model(os.path.join(self.serialization_dir, f"epoch_{epochs_trained}"),
+                          files_to_archive=self.params.files_to_archive)
 
             epochs_trained += 1
 
