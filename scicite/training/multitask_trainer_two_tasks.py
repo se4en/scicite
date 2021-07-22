@@ -556,12 +556,13 @@ class MultiTaskTrainer2:
         train_generator_tqdm = Tqdm.tqdm(train_generator,
                                          total=num_training_batches)
         logger.info("After tqdm")
-        logger.info(str(train_generator_tqdm.total))
-        for _ in train_generator_tqdm:
-            logger.info(_)
-            break
-        logger.info(train_generator_aux.__sizeof__())
-        logger.info(train_generator_aux2.__sizeof__())
+
+        # logger.info(str(train_generator_tqdm.total))
+        # for _ in train_generator_tqdm:
+        #     logger.info(_)
+        #     break
+        # logger.info(train_generator_aux.__sizeof__())
+        # logger.info(train_generator_aux2.__sizeof__())
         # train_aux_generator_tqdm = Tqdm.tqdm(train_generator_aux,
         #                                      total=num_training_batches_aux)
         for batch, batch_aux, batch_aux2 in zip(train_generator_tqdm, train_generator_aux, train_generator_aux2):

@@ -17,13 +17,13 @@ from allennlp.models import load_archive
 
 sys.path.append(str(Path('.').absolute()))
 
-from scicite.training.train_multitask_two_tasks import train_model_from_file
-from scicite.constants import root_path
-from scicite.models.scaffold_bilstm_attention_classifier import ScaffoldBilstmAttentionClassifier
-from scicite.dataset_readers.citation_data_reader_scicite import SciciteDatasetReader
-from scicite.dataset_readers.citation_data_reader_scicite_aux import SciciteSectitleDatasetReader, SciCiteWorthinessDataReader
-from scicite.dataset_readers.citation_data_reader_aclarc import AclarcDatasetReader
-from scicite.dataset_readers.citation_data_reader_aclarc_aux import AclSectionTitleDatasetReader, AclCiteWorthinessDatasetReader
+from scicite.scicite.training.train_multitask_two_tasks import train_model_from_file
+from scicite.scicite.constants import root_path
+from scicite.scicite.models.scaffold_bilstm_attention_classifier import ScaffoldBilstmAttentionClassifier
+from scicite.scicite.dataset_readers.citation_data_reader_scicite import SciciteDatasetReader
+from scicite.scicite.dataset_readers.citation_data_reader_scicite_aux import SciciteSectitleDatasetReader, SciCiteWorthinessDataReader
+from scicite.scicite.dataset_readers.citation_data_reader_aclarc import AclarcDatasetReader
+from scicite.scicite.dataset_readers.citation_data_reader_aclarc_aux import AclSectionTitleDatasetReader, AclCiteWorthinessDatasetReader
 
 
 class CitationClassifierTest(ModelTestCase):

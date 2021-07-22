@@ -16,8 +16,8 @@ from allennlp.commands.test_install import TestInstall
 from allennlp.commands.train import Train
 from allennlp.common.util import import_submodules
 
-from scicite.training.train_multitask import TrainMultiTask
-from scicite.training.train_multitask_two_tasks import TrainMultiTask2
+from scicite.scicite.training.train_multitask import TrainMultiTask
+from scicite.scicite.training.train_multitask_two_tasks import TrainMultiTask2
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -72,11 +72,11 @@ def main(prog: str = None,
     # so give the user some help.
     if 'func' in dir(args):
         # Import any additional modules needed (to register custom classes).
-        for package_name in getattr(args, 'include_package', ()):
-            try:
-                import_submodules(package_name)
-            except TypeError:
-                import pdb; pdb.set_trace()
+        # for package_name in getattr(args, 'include_package', ()):
+        #     try:
+        #         import_submodules(package_name)
+        #     except TypeError:
+        #         import pdb; pdb.set_trace()
         args.func(args)
     else:
         parser.print_help()

@@ -7,10 +7,10 @@ import sys
 from pathlib import Path
 #sys.path.append(str(Path('.').absolute()))
 
-from scicite.dataset_readers.citation_data_reader_aclarc import AclarcDatasetReader
-from scicite.dataset_readers.citation_data_reader_aclarc_aux import AclSectionTitleDatasetReader, AclCiteWorthinessDatasetReader
-from scicite.dataset_readers.citation_data_reader_scicite import SciciteDatasetReader
-from scicite.dataset_readers.citation_data_reader_scicite_aux import SciciteSectitleDatasetReader, SciCiteWorthinessDataReader
+from scicite.scicite.dataset_readers.citation_data_reader_aclarc import AclarcDatasetReader
+from scicite.scicite.dataset_readers.citation_data_reader_aclarc_aux import AclSectionTitleDatasetReader, AclCiteWorthinessDatasetReader
+from scicite.scicite.dataset_readers.citation_data_reader_scicite import SciciteDatasetReader
+from scicite.scicite.dataset_readers.citation_data_reader_scicite_aux import SciciteSectitleDatasetReader, SciCiteWorthinessDataReader
 
 
 class TestDatasetReader(AllenNlpTestCase):
