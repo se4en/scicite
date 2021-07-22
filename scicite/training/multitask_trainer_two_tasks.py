@@ -538,6 +538,7 @@ class MultiTaskTrainer2:
         else:
             logger.info("Training")
 
+
         num_training_batches = self._iterator.get_num_batches(self._train_data)
         num_training_batches_aux = self._iterator_aux.get_num_batches(self._train_dataset_aux)
         num_training_batches_aux2 = self._iterator_aux2.get_num_batches(self._train_dataset_aux2)
@@ -554,17 +555,31 @@ class MultiTaskTrainer2:
         logger.info("Training")
         train_generator_tqdm = Tqdm.tqdm(train_generator,
                                          total=num_training_batches)
+        logger.info("After tqdm")
+        logger.info(str(train_generator_tqdm.total))
+        for _ in train_generator_tqdm:
+            logger.info(_)
+            break
+        logger.info(train_generator_aux.__sizeof__())
+        logger.info(train_generator_aux2.__sizeof__())
         # train_aux_generator_tqdm = Tqdm.tqdm(train_generator_aux,
         #                                      total=num_training_batches_aux)
         for batch, batch_aux, batch_aux2 in zip(train_generator_tqdm, train_generator_aux, train_generator_aux2):
+            logger.info("After for")
             batches_this_epoch += 1
             self._batch_num_total += 1
             batch_num_total = self._batch_num_total
 
+            logger.info("After batch_num")
+
             self._log_histograms_this_batch = self._histogram_interval is not None and (
                     batch_num_total % self._histogram_interval == 0)
 
+            logger.info("After histograms")
+
             self._optimizer.zero_grad()
+
+            logger.info("After zero_grad")
 
             if multitask_training:
                 loss = self._batch_loss(batch,
@@ -574,7 +589,11 @@ class MultiTaskTrainer2:
             else:
                 loss = self._batch_loss(batch, for_training=True)
 
+            logger.info("Before backward")
+
             loss.backward()
+
+            logger.info("After backward")
 
             train_loss += loss.item()
 
