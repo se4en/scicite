@@ -918,9 +918,9 @@ class MultiTaskTrainer2:
                 logger.info("Estimated training time remaining: %s", formatted_time)
 
 
-            logging.info(f"Save model after epoch {epochs_trained}.")
-            archive_model(os.path.join(self.serialization_dir, f"epoch_{epochs_trained}"),
-                          files_to_archive=self.params.files_to_archive)
+            # logging.info(f"Save model after epoch {epochs_trained}.")
+            # archive_model(os.path.join(self.serialization_dir, f"epoch_{epochs_trained}"),
+            #               files_to_archive=self.params.files_to_archive)
 
             epochs_trained += 1
 
