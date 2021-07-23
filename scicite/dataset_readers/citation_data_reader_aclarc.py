@@ -42,7 +42,7 @@ class AclarcDatasetReader(DatasetReader):
         take longer per batch.  This also allows training with datasets that are too large to fit
         in memory.
     tokenizer : ``Tokenizer``, optional
-        Tokenizer to use to split the title and abstrct into words or other kinds of tokens.
+        Tokenizer to use to split the title and abstract into words or other kinds of tokens.
         Defaults to ``WordTokenizer()``.
     token_indexers : ``Dict[str, TokenIndexer]``, optional
         Indexers used to define input token representations. Defaults to ``{"tokens":
@@ -56,13 +56,17 @@ class AclarcDatasetReader(DatasetReader):
                  use_lexicon_features: bool = False,
                  use_sparse_lexicon_features: bool = False,
                  use_pattern_features: bool = False,
-                 with_elmo: bool = False
+                 with_elmo: bool = False,
+                 with_scibert: bool = False
                  ) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer or WordTokenizer()
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
                                     "tokens": SingleIdTokenIndexer()}
+        # elif with_bert:
+        #     self._token_indexers = {"bert": ELMoTokenCharactersIndexer(),
+        #                             "tokens": SingleIdTokenIndexer()}
         else:
             self._token_indexers = {"tokens": SingleIdTokenIndexer()}
         self.use_lexicon_features = use_lexicon_features
@@ -179,9 +183,11 @@ class AclarcDatasetReader(DatasetReader):
         use_sparse_lexicon_features = params.pop_bool("use_sparse_lexicon_features", False)
         use_pattern_features = params.pop_bool("use_pattern_features", False)
         with_elmo = params.pop_bool("with_elmo", False)
+        with_bert = params.pop_bool("with_bert", False)
         params.assert_empty(cls.__name__)
         return cls(lazy=lazy, tokenizer=tokenizer,
                    use_lexicon_features=use_lexicon_features,
                    use_sparse_lexicon_features=use_sparse_lexicon_features,
                    use_pattern_features=use_pattern_features,
-                   with_elmo=with_elmo)
+                   with_elmo=with_elmo,
+                   with_bert=with_bert)
