@@ -21,6 +21,7 @@ from scicite.scicite.resources.lexicons import FORMULAIC_PATTERNS, AGENT_PATTERN
 from scicite.scicite.data import DataReaderJurgens
 from scicite.scicite.data import read_jurgens_jsonline
 from scicite.scicite.compute_features import is_in_lexicon, get_formulaic_features, get_agent_features
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -57,16 +58,15 @@ class AclarcDatasetReader(DatasetReader):
                  use_sparse_lexicon_features: bool = False,
                  use_pattern_features: bool = False,
                  with_elmo: bool = False,
-                 with_scibert: bool = False
+                 with_bert: bool = False
                  ) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer or WordTokenizer()
+        if with_bert:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
                                     "tokens": SingleIdTokenIndexer()}
-        # elif with_bert:
-        #     self._token_indexers = {"bert": ELMoTokenCharactersIndexer(),
-        #                             "tokens": SingleIdTokenIndexer()}
         else:
             self._token_indexers = {"tokens": SingleIdTokenIndexer()}
         self.use_lexicon_features = use_lexicon_features
@@ -124,6 +124,8 @@ class AclarcDatasetReader(DatasetReader):
         fields = {
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
+
+        fields['cit_text_for_bert'] = self.bert_tokenizer.encode(citation_text, padding='max_length', max_length=300)
 
         if self.use_sparse_lexicon_features:
             # convert to regular string

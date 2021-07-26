@@ -27,6 +27,7 @@ from scicite.scicite.constants import  Scicite_Format_Nested_Jsonlines
 
 
 import torch.nn as nn
+from transformers import AutoModel
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -46,6 +47,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
                  regularizer: Optional[RegularizerApplicator] = None,
                  report_auxiliary_metrics: bool = False,
                  predict_mode: bool = False,
+                 bert_model: Optional[AutoModel] = None,
                  ) -> None:
         """
         Additional Args:
@@ -66,6 +68,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         self.classifier_feedforward = classifier_feedforward
         self.classifier_feedforward_2 = classifier_feedforward_2
         self.classifier_feedforward_3 = classifier_feedforward_3
+        self.bert_model = bert_model
 
         self.label_accuracy = CategoricalAccuracy()
         self.label_f1_metrics = {}
@@ -105,7 +108,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
                 citation_excerpt_index: Optional[str] = None,
                 citation_id: Optional[str] = None,
                 section_label: Optional[torch.Tensor] = None,
-                is_citation: Optional[torch.Tensor] = None) -> Dict[str, torch.Tensor]:
+                is_citation: Optional[torch.Tensor] = None,
+                cit_text_for_bert: Optional[torch.LongTensor] = None) -> Dict[str, torch.Tensor]:
         """
         Forward pass of the model
         Args:
@@ -121,11 +125,26 @@ class ScaffoldBilstmAttentionClassifier(Model):
             is_citation: citation worthiness label
         """
         # pylint: disable=arguments-differ
-        citation_text_embedding = self.text_field_embedder(citation_text)
-        citation_text_mask = util.get_text_field_mask(citation_text)
+        if not cit_text_for_bert:
+            # logger.info(f"[EMB in model] cit_text.type={type(citation_text)}")
+            # logger.info(f"[EMB in model] cit_text.size={citation_text.__sizeof__()}")
+            # logger.info(f"[EMB in model] cit_text={citation_text}")
+            citation_text_embedding = self.text_field_embedder(citation_text)
+            # logger.info(f"[EMB in model] cit_text_emb.type={type(citation_text_embedding)}")
+            # logger.info(f"[EMB in model] cit_text_emb.size={citation_text_embedding.__sizeof__()}")
+            # logger.info(f"[EMB in model] cit_text_emb={citation_text_embedding}")
+            citation_text_mask = util.get_text_field_mask(citation_text)
+            # logger.info(f"[EMB in model] cit_text_msk.type={type(citation_text_mask)}")
+            # logger.info(f"[EMB in model] cit_text_msk.size={citation_text_mask.__sizeof__()}")
+            # logger.info(f"[EMB in model] cit_text_msk={citation_text_mask}")
 
-        # shape: [batch, sent, output_dim]
-        encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
+            # shape: [batch, sent, output_dim]
+            encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
+            # logger.info(f"[EMB in model] enc_cit_text.type={type(encoded_citation_text)}")
+            # logger.info(f"[EMB in model] enc_cit_text.size={encoded_citation_text.__sizeof__()}")
+            # logger.info(f"[EMB in model] enc_cit_text={encoded_citation_text}")
+        else:
+            encoded_citation_text = self.bert_model(cit_text_for_bert)
 
         # shape: [batch, output_dim]
         attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text, return_attn_distribution=True)

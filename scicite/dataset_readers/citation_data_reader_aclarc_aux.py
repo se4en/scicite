@@ -14,6 +14,7 @@ from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
 from scicite.scicite.helper import regex_find_citation
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -25,13 +26,16 @@ class AclSectionTitleDatasetReader(DatasetReader):
                  tokenizer: Tokenizer = None,
                  token_indexers: Dict[str, TokenIndexer] = None,
                  clean_citation: bool = True,
-                 with_elmo: bool = False
+                 with_elmo: bool = False,
+                 with_bert: bool = False,
                  # use_lexicon_features: bool = False,
                  # use_sparse_lexicon_features: bool = False
                  ) -> None:
         super().__init__(lazy)
         self._clean_citation = clean_citation
         self._tokenizer = tokenizer or WordTokenizer()
+        if with_bert:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
                                     "tokens": SingleIdTokenIndexer()}
@@ -74,6 +78,8 @@ class AclSectionTitleDatasetReader(DatasetReader):
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
 
+        fields['cit_text_for_bert'] = self.bert_tokenizer.encode(citation_text, padding='max_length', max_length=300)
+
         if section_name is not None:
             fields['section_label'] = LabelField(section_name, label_namespace="section_labels")
         fields['citing_paper_id'] = MetadataField(citing_paper_id)
@@ -85,9 +91,10 @@ class AclSectionTitleDatasetReader(DatasetReader):
         lazy = params.pop('lazy', False)
         tokenizer = Tokenizer.from_params(params.pop('tokenizer', {}))
         with_elmo = params.pop_bool("with_elmo", False)
+        with_bert = params.pop_bool("with_bert", False)
         params.assert_empty(cls.__name__)
         return cls(lazy=lazy, tokenizer=tokenizer,
-                   with_elmo=with_elmo)
+                   with_elmo=with_elmo, with_bert=with_bert)
 
 
 @DatasetReader.register("aclarc_cite_worthiness_data_reader")
@@ -98,11 +105,14 @@ class AclCiteWorthinessDatasetReader(DatasetReader):
                  tokenizer: Tokenizer = None,
                  token_indexers: Dict[str, TokenIndexer] = None,
                  clean_citation: bool = True,
-                 with_elmo: bool = False
+                 with_elmo: bool = False,
+                 with_bert: bool = False
                  ) -> None:
         super().__init__(lazy)
         self._clean_citation = clean_citation
         self._tokenizer = tokenizer or WordTokenizer()
+        if with_bert:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
                                     "tokens": SingleIdTokenIndexer()}
@@ -143,6 +153,8 @@ class AclCiteWorthinessDatasetReader(DatasetReader):
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
 
+        fields['cit_text_for_bert'] = self.bert_tokenizer.encode(citation_text, padding='max_length', max_length=300)
+
         if is_citation is not None:
             fields['is_citation'] = LabelField(str(is_citation), label_namespace="cite_worthiness_labels")
         fields['citing_paper_id'] = MetadataField(citing_paper_id)
@@ -154,5 +166,7 @@ class AclCiteWorthinessDatasetReader(DatasetReader):
         lazy = params.pop('lazy', False)
         tokenizer = Tokenizer.from_params(params.pop('tokenizer', {}))
         with_elmo = params.pop_bool("with_elmo", False)
+        with_bert = params.pop_bool("with_bert", False)
         params.assert_empty(cls.__name__)
-        return cls(lazy=lazy, tokenizer=tokenizer, with_elmo=with_elmo)
+        return cls(lazy=lazy, tokenizer=tokenizer,
+                   with_elmo=with_elmo, with_bert=with_bert)
