@@ -125,7 +125,9 @@ class AclarcDatasetReader(DatasetReader):
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
 
-        fields['cit_text_for_bert'] = self.bert_tokenizer.encode(citation_text, padding='max_length', max_length=300)
+        fields['cit_text_for_bert'] = ListField([LabelField(encoding, skip_indexing=True) for encoding in
+                                                self.bert_tokenizer.encode(citation_text, padding='max_length',
+                                                                           max_length=300)])
 
         if self.use_sparse_lexicon_features:
             # convert to regular string

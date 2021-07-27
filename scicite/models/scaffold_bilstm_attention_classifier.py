@@ -69,6 +69,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         self.classifier_feedforward_2 = classifier_feedforward_2
         self.classifier_feedforward_3 = classifier_feedforward_3
         self.bert_model = bert_model
+        self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
 
         self.label_accuracy = CategoricalAccuracy()
         self.label_f1_metrics = {}
@@ -89,7 +90,10 @@ class ScaffoldBilstmAttentionClassifier(Model):
                 F1Measure(positive_label=i)
         self.loss = torch.nn.CrossEntropyLoss()
 
-        self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
+        if bert_model is not None:
+            self.attention_seq2seq = Attention(bert_model.config.hidden_size)
+        else:
+            self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
 
         self.report_auxiliary_metrics = report_auxiliary_metrics
         self.predict_mode = predict_mode
@@ -125,7 +129,11 @@ class ScaffoldBilstmAttentionClassifier(Model):
             is_citation: citation worthiness label
         """
         # pylint: disable=arguments-differ
-        if not cit_text_for_bert:
+        if self.bert_model is not None:
+            citation_text_embedding = self.bert_model(cit_text_for_bert, return_dict=False)[0]
+            citation_text_mask = util.get_text_field_mask(citation_text)
+            encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
+        else:
             # logger.info(f"[EMB in model] cit_text.type={type(citation_text)}")
             # logger.info(f"[EMB in model] cit_text.size={citation_text.__sizeof__()}")
             # logger.info(f"[EMB in model] cit_text={citation_text}")
@@ -143,8 +151,6 @@ class ScaffoldBilstmAttentionClassifier(Model):
             # logger.info(f"[EMB in model] enc_cit_text.type={type(encoded_citation_text)}")
             # logger.info(f"[EMB in model] enc_cit_text.size={encoded_citation_text.__sizeof__()}")
             # logger.info(f"[EMB in model] enc_cit_text={encoded_citation_text}")
-        else:
-            encoded_citation_text = self.bert_model(cit_text_for_bert)
 
         # shape: [batch, output_dim]
         attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text, return_attn_distribution=True)
@@ -279,6 +285,11 @@ class ScaffoldBilstmAttentionClassifier(Model):
             embedder_params = params.pop("elmo_text_field_embedder")
         else:
             embedder_params = params.pop("text_field_embedder")
+        with_bert = params.pop_bool("with_bert", False)
+        if with_bert:
+            bert_model = AutoModel.from_pretrained("allenai/scibert_scivocab_uncased")
+        else:
+            bert_model = None
         text_field_embedder = TextFieldEmbedder.from_params(embedder_params, vocab=vocab)
         # citation_text_encoder = Seq2VecEncoder.from_params(params.pop("citation_text_encoder"))
         citation_text_encoder = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder"))
@@ -308,7 +319,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
                    initializer=initializer,
                    regularizer=regularizer,
                    report_auxiliary_metrics=report_auxiliary_metrics,
-                   predict_mode=predict_mode)
+                   predict_mode=predict_mode,
+                   bert_model=bert_model)
 
 
 def new_parameter(*size):
