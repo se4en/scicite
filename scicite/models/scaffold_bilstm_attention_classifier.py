@@ -69,7 +69,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         self.classifier_feedforward_2 = classifier_feedforward_2
         self.classifier_feedforward_3 = classifier_feedforward_3
         self.bert_model = bert_model
-        self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
+        # self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
 
         self.label_accuracy = CategoricalAccuracy()
         self.label_f1_metrics = {}
@@ -90,10 +90,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
                 F1Measure(positive_label=i)
         self.loss = torch.nn.CrossEntropyLoss()
 
-        if bert_model is not None:
-            self.attention_seq2seq = Attention(bert_model.config.hidden_size)
-        else:
-            self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
+        self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
 
         self.report_auxiliary_metrics = report_auxiliary_metrics
         self.predict_mode = predict_mode
@@ -134,23 +131,11 @@ class ScaffoldBilstmAttentionClassifier(Model):
             citation_text_mask = util.get_text_field_mask(citation_text)
             encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
         else:
-            # logger.info(f"[EMB in model] cit_text.type={type(citation_text)}")
-            # logger.info(f"[EMB in model] cit_text.size={citation_text.__sizeof__()}")
-            # logger.info(f"[EMB in model] cit_text={citation_text}")
             citation_text_embedding = self.text_field_embedder(citation_text)
-            # logger.info(f"[EMB in model] cit_text_emb.type={type(citation_text_embedding)}")
-            # logger.info(f"[EMB in model] cit_text_emb.size={citation_text_embedding.__sizeof__()}")
-            # logger.info(f"[EMB in model] cit_text_emb={citation_text_embedding}")
             citation_text_mask = util.get_text_field_mask(citation_text)
-            # logger.info(f"[EMB in model] cit_text_msk.type={type(citation_text_mask)}")
-            # logger.info(f"[EMB in model] cit_text_msk.size={citation_text_mask.__sizeof__()}")
-            # logger.info(f"[EMB in model] cit_text_msk={citation_text_mask}")
 
             # shape: [batch, sent, output_dim]
             encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
-            # logger.info(f"[EMB in model] enc_cit_text.type={type(encoded_citation_text)}")
-            # logger.info(f"[EMB in model] enc_cit_text.size={encoded_citation_text.__sizeof__()}")
-            # logger.info(f"[EMB in model] enc_cit_text={encoded_citation_text}")
 
         # shape: [batch, output_dim]
         attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text, return_attn_distribution=True)

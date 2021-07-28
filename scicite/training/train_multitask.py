@@ -362,6 +362,10 @@ def train_model(params: Params,
     validation_data_aux = all_datasets_aux.get('validation_aux')
     test_data_aux = all_datasets_aux.get('test_aux')
 
+    if model.bert_model is not None:
+        for param in model.bert_model.parameters():
+            param.requires_grad = False
+
     trainer_params = params.pop("trainer")
     no_grad_regexes = trainer_params.pop("no_grad", ())
     for name, parameter in model.named_parameters():
