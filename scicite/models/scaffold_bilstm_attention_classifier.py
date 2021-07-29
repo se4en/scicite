@@ -23,7 +23,7 @@ from allennlp.training.metrics import CategoricalAccuracy, F1Measure
 from overrides import overrides
 from torch.nn import Parameter, Linear
 
-from scicite.scicite.constants import  Scicite_Format_Nested_Jsonlines
+from scicite.constants import  Scicite_Format_Nested_Jsonlines
 
 
 import torch.nn as nn

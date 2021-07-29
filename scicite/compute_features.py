@@ -6,12 +6,12 @@ from typing import List, Optional, Tuple, Type, Dict
 import functools
 from spacy.tokens.token import Token as SpacyToken
 
-import scicite.scicite.constants as constants
-from scicite.scicite.constants import CITATION_TOKEN
-from scicite.scicite.helper import find
-from scicite.scicite.resources.lexicons import (AGENT_PATTERNS, ALL_ACTION_LEXICONS,
+import scicite.constants as constants
+from scicite.constants import CITATION_TOKEN
+from scicite.helper import find
+from scicite.resources.lexicons import (AGENT_PATTERNS, ALL_ACTION_LEXICONS,
                                         ALL_CONCEPT_LEXICONS, FORMULAIC_PATTERNS)
-from scicite.scicite.data import Citation
+from scicite.data import Citation
 import logging
 
 logger = logging.getLogger('classifier')

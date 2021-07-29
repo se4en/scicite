@@ -8,7 +8,7 @@ import os
 
 sys.path.append(str(Path().absolute()))
 # from allennlp.commands import main
-from scicite.scicite.training.commands import main
+from scicite.training.commands import main
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                     level=logging.INFO)

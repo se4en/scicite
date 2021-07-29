@@ -7,8 +7,8 @@ import Levenshtein
 import logging
 import numpy as np
 
-from scicite.scicite.constants import CITATION_TOKEN, NEGATIVE_CLASS_PREFIX
-from scicite.scicite.helper import regex_find_citation
+from scicite.constants import CITATION_TOKEN, NEGATIVE_CLASS_PREFIX
+from scicite.helper import regex_find_citation
 
 logger = logging.getLogger()
 

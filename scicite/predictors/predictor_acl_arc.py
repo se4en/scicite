@@ -8,9 +8,9 @@ from allennlp.common.util import JsonDict
 from allennlp.data import Instance
 from allennlp.service.predictors.predictor import Predictor
 
-from scicite.scicite.data import read_jurgens_jsonline
-from scicite.scicite.helper import JsonFloatEncoder
-from scicite.scicite.constants import NONE_LABEL_NAME
+from scicite.data import read_jurgens_jsonline
+from scicite.helper import JsonFloatEncoder
+from scicite.constants import NONE_LABEL_NAME
 
 
 @Predictor.register('predictor_aclarc')

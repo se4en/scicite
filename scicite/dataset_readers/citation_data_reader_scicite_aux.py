@@ -10,7 +10,7 @@ from allennlp.data.instance import Instance
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
-from scicite.scicite.helper import regex_find_citation
+from scicite.helper import regex_find_citation
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

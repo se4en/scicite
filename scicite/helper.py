@@ -7,7 +7,7 @@ import re
 import numpy as np
 import string
 
-from scicite.scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
+from scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
 
 logger = logging.getLogger('classifier')
 

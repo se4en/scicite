@@ -10,11 +10,11 @@ from allennlp.common.util import JsonDict
 from allennlp.data import Instance
 from allennlp.service.predictors.predictor import Predictor
 
-from scicite.scicite.data import Citation, read_s2_excerpt
-from scicite.scicite.helper import JsonFloatEncoder
-from scicite.scicite.constants import NONE_LABEL_NAME
-from scicite.scicite.constants import S2_CATEGORIES_MULTICLASS
-from scicite.scicite.helper import is_sentence
+from scicite.data import Citation, read_s2_excerpt
+from scicite.helper import JsonFloatEncoder
+from scicite.constants import NONE_LABEL_NAME
+from scicite.constants import S2_CATEGORIES_MULTICLASS
+from scicite.helper import is_sentence
 
 
 @Predictor.register('predictor_scicite')
