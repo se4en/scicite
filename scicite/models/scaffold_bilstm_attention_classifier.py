@@ -23,13 +23,13 @@ from allennlp.training.metrics import CategoricalAccuracy, F1Measure
 from overrides import overrides
 from torch.nn import Parameter, Linear
 
-from scicite.constants import  Scicite_Format_Nested_Jsonlines
-
+from scicite.constants import Scicite_Format_Nested_Jsonlines
 
 import torch.nn as nn
 from transformers import AutoModel
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
 
 @Model.register("scaffold_bilstm_attention_classifier")
 class ScaffoldBilstmAttentionClassifier(Model):
@@ -37,6 +37,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
     This ``Model`` performs text classification for citation intents.  We assume we're given a
     citation text, and we predict some output label.
     """
+
     def __init__(self, vocab: Vocabulary,
                  text_field_embedder: TextFieldEmbedder,
                  citation_text_encoder: Seq2SeqEncoder,
@@ -80,14 +81,20 @@ class ScaffoldBilstmAttentionClassifier(Model):
         #         F1Measure(positive_label=i)
 
         for i in range(self.num_classes):
-            self.label_f1_metrics[vocab.get_token_from_index(index=i, namespace="labels")] =\
+            self.label_f1_metrics[vocab.get_token_from_index(index=i, namespace="labels")] = \
                 F1Measure(positive_label=i)
         for i in range(self.num_classes_sections):
-            self.label_f1_metrics_sections[vocab.get_token_from_index(index=i, namespace="section_labels")] =\
+            self.label_f1_metrics_sections[vocab.get_token_from_index(index=i, namespace="section_labels")] = \
                 F1Measure(positive_label=i)
         for i in range(self.num_classes_cite_worthiness):
-            self.label_f1_metrics_cite_worthiness[vocab.get_token_from_index(index=i, namespace="cite_worthiness_labels")] =\
+            self.label_f1_metrics_cite_worthiness[
+                vocab.get_token_from_index(index=i, namespace="cite_worthiness_labels")] = \
                 F1Measure(positive_label=i)
+
+        weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
+        class_weights = torch.FloatTensor(weights).cuda()
+        self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
+
         self.loss = torch.nn.CrossEntropyLoss()
 
         self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
@@ -153,7 +160,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
 
             output_dict = {"logits": logits}
 
-            loss = self.loss(logits, labels)
+            print(labels)
+            loss = self.loss_main_task(logits, labels)
             output_dict["loss"] = loss
 
             # compute F1 per label
@@ -169,7 +177,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
             loss = self.loss(logits, section_label)
             output_dict["loss"] = loss
             for i in range(self.num_classes_sections):
-                metric = self.label_f1_metrics_sections[self.vocab.get_token_from_index(index=i, namespace="section_labels")]
+                metric = self.label_f1_metrics_sections[
+                    self.vocab.get_token_from_index(index=i, namespace="section_labels")]
                 metric(logits, section_label)
 
         if is_citation is not None:  # second scaffold task
@@ -202,7 +211,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         predictions = class_probabilities.cpu().data.numpy()
         argmax_indices = np.argmax(predictions, axis=-1)
         labels = [self.vocab.get_token_from_index(x, namespace="labels")
-                 for x in argmax_indices]
+                  for x in argmax_indices]
         output_dict['probabilities'] = class_probabilities
         output_dict['positive_labels'] = labels
         output_dict['prediction'] = labels
@@ -316,6 +325,7 @@ def new_parameter(*size):
 
 class Attention(nn.Module):
     """ Simple multiplicative attention"""
+
     def __init__(self, attention_size):
         super(Attention, self).__init__()
         self.attention = new_parameter(attention_size, 1)
