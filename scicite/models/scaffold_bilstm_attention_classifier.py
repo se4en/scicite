@@ -70,7 +70,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         self.classifier_feedforward_2 = classifier_feedforward_2
         self.classifier_feedforward_3 = classifier_feedforward_3
         self.bert_model = bert_model
-        # self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
+        self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
 
         self.label_accuracy = CategoricalAccuracy()
         self.label_f1_metrics = {}
@@ -92,8 +92,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
                 F1Measure(positive_label=i)
 
         weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
-        class_weights = torch.FloatTensor(weights).cuda()
-        self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
+        class_weights = torch.FloatTensor(weights)#.cuda()
+        #self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
 
         self.loss = torch.nn.CrossEntropyLoss()
 
@@ -160,8 +160,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
 
             output_dict = {"logits": logits}
 
-            print(labels)
-            loss = self.loss_main_task(logits, labels)
+            #loss = self.loss_main_task(logits, labels)
+            loss = self.loss(logits, labels)
             output_dict["loss"] = loss
 
             # compute F1 per label
