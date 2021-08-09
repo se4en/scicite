@@ -3,6 +3,7 @@
 
 from typing import Dict, List
 import json
+import jsonlines
 import logging
 
 import torch
@@ -17,9 +18,11 @@ from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
 from scicite.scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
+from scicite.scicite.resources.lexicons import FORMULAIC_PATTERNS, AGENT_PATTERNS
 from scicite.scicite.data import DataReaderJurgens
 from scicite.scicite.data import DataReaderS2, DataReaderS2ExcerptJL
-from scicite.scicite.compute_features import is_in_lexicon
+from scicite.scicite.compute_features import is_in_lexicon, get_formulaic_features, get_agent_features
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -58,11 +61,15 @@ class SciciteDatasetReader(DatasetReader):
                  tokenizer: Tokenizer = None,
                  use_lexicon_features: bool=False,
                  use_sparse_lexicon_features: bool = False,
+                 use_pattern_features: bool = False,
                  multilabel: bool = False,
                  with_elmo: bool = False,
+                 with_bert: bool = False,
                  reader_format: str = 'flat') -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer or WordTokenizer()
+        if with_bert:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
         if with_elmo:
             # self._token_indexers = {"tokens": SingleIdTokenIndexer()}
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
@@ -72,7 +79,11 @@ class SciciteDatasetReader(DatasetReader):
 
         self.use_lexicon_features = use_lexicon_features
         self.use_sparse_lexicon_features = use_sparse_lexicon_features
-        if self.use_lexicon_features or self.use_sparse_lexicon_features:
+        if self.use_pattern_features:
+            self.formulaic_patterns = FORMULAIC_PATTERNS
+            self.agent_patterns = AGENT_PATTERNS
+            self.lexicons = {**ALL_ACTION_LEXICONS, **ALL_CONCEPT_LEXICONS}
+        elif self.use_lexicon_features or self.use_sparse_lexicon_features:
             self.lexicons = {**ALL_ACTION_LEXICONS, **ALL_CONCEPT_LEXICONS}
         self.multilabel = multilabel
         self.reader_format = reader_format
@@ -157,6 +168,7 @@ class SciciteDatasetReader(DatasetReader):
         use_sparse_lexicon_features = params.pop_bool("use_sparse_lexicon_features", False)
         multilabel = params.pop_bool("multilabel")
         with_elmo = params.pop_bool("with_elmo", False)
+        with_bert = params.pop_bool("with_bert", False)
         reader_format = params.pop("reader_format", 'flat')
         params.assert_empty(cls.__name__)
         return cls(lazy=lazy, tokenizer=tokenizer,
@@ -164,4 +176,5 @@ class SciciteDatasetReader(DatasetReader):
                    use_sparse_lexicon_features=use_sparse_lexicon_features,
                    multilabel=multilabel,
                    with_elmo=with_elmo,
+                   with_bert=with_bert,
                    reader_format=reader_format)
