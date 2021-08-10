@@ -88,6 +88,20 @@ class ScaffoldBilstmAttentionClassifier(Model):
         for i in range(self.num_classes_cite_worthiness):
             self.label_f1_metrics_cite_worthiness[vocab.get_token_from_index(index=i, namespace="cite_worthiness_labels")] =\
                 F1Measure(positive_label=i)
+
+        weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
+        class_weights = torch.FloatTensor(weights)  # .cuda()
+        self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
+        #self.loss = torch.nn.CrossEntropyLoss()
+        # self.focal_loss = torch.hub.load(
+        #    'adeelh/pytorch-multi-class-focal-loss',
+        #    model='FocalLoss',
+        #     alpha=torch.tensor([0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]),
+        #    alpha=torch.tensor([0.05, 0.1, 0.1, 0.24, 0.25, 0.26]),
+        #    gamma=2,
+        #    reduction='mean',
+        #    force_reload=False
+        # )
         self.loss = torch.nn.CrossEntropyLoss()
 
         self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
