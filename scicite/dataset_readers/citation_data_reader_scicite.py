@@ -132,6 +132,10 @@ class SciciteDatasetReader(DatasetReader):
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
 
+        fields['cit_text_for_bert'] = ListField([LabelField(encoding, skip_indexing=True) for encoding in
+                                                 self.bert_tokenizer.encode(citation_text, padding='max_length',
+                                                                            max_length=600)])
+
         if self.use_sparse_lexicon_features:
             # convert to regular string
             sent = [token.text.lower() for token in citation_tokens]

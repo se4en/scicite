@@ -91,7 +91,10 @@ class ScaffoldBilstmAttentionClassifier(Model):
 
         weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
         class_weights = torch.FloatTensor(weights)  # .cuda()
-        self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
+        scicite_weights = [0.57620915, 1.16465863, 2.46367091]
+        class_scicite_weights = torch.FloatTensor(scicite_weights)  # .cuda()
+
+        self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_scicite_weights)
         #self.loss = torch.nn.CrossEntropyLoss()
         # self.focal_loss = torch.hub.load(
         #    'adeelh/pytorch-multi-class-focal-loss',

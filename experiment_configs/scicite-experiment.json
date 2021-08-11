@@ -12,31 +12,35 @@ local DIM =
   "random_seed": std.extVar("SEED"),
   "pytorch_seed": std.extVar("PYTORCH_SEED"),
   "numpy_seed": std.extVar("NUMPY_SEED"),
-  "mixing_ratio": std.extVar("mixing_ratio"),
-  "mixing_ratio2": std.extVar("mixing_ratio2"),
+  "mixing_ratio": 0.06,
+  "mixing_ratio2": 0.21,
   "dataset_reader": {
     "type": "scicite_datasetreader",
     "use_sparse_lexicon_features": false,
     "multilabel": false,
-    "with_elmo": std.extVar("elmo")
+    "with_elmo": false,
+    "with_bert": true
   },
   "dataset_reader_aux": {
     "type": "scicite_section_title_data_reader",
-    "with_elmo": std.extVar("elmo")
+    "with_elmo": false,
+    "with_bert": true
   },
     "dataset_reader_aux2": {
     "type": "scicite_cite_worthiness_data_reader",
-      "with_elmo": std.extVar("elmo")
+      "with_elmo": false,
+      "with_bert": true
   },
-  "train_data_path_aux": "data/cite-sections.jsonl",
-  "train_data_path_aux2": "data/cite-worthiness.jsonl",
-  "train_data_path": "data/train.jsonl",
-  "validation_data_path": "data/dev.jsonl",
-  "test_data_path": "data/test.jsonl",
+  "train_data_path_aux": "/content/scicite/scicite/data/scicite/scaffolds/sections-scaffold-train.jsonl",
+  "train_data_path_aux2": "/content/scicite/scicite/data/scicite/scaffolds/cite-worthiness-scaffold-train.jsonl",
+  "train_data_path": "/content/scicite/scicite/data/scicite/train.jsonl",
+  "validation_data_path": "/content/scicite/scicite/data/scicite/dev.jsonl",
+  "test_data_path": "/content/scicite/scicite/data/scicite/test.jsonl",
   "evaluate_on_test": true,
   "evaluate_aux_on_test": true,
   "model": {
-    "with_elmo": std.extVar("elmo"),
+    "with_elmo": false,
+    "with_bert": true,
     "data_format": "scicite_flat_jsonlines",
     "use_sparse_lexicon_features": false,
     "type": "scaffold_bilstm_attention_classifier",
@@ -76,7 +80,7 @@ local DIM =
     "citation_text_encoder": {
       "type": "gru",
       "bidirectional": true,
-      "input_size": DIM,
+      "input_size": 768,
       "hidden_size": 100,
       "num_layers": 2,
       "dropout": 0.3

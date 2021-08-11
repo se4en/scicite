@@ -5,12 +5,13 @@ import logging
 from overrides import overrides
 from allennlp.common import Params
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import LabelField, TextField, MetadataField
+from allennlp.data.fields import LabelField, TextField, MetadataField, ListField
 from allennlp.data.instance import Instance
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
 from scicite.scicite.helper import regex_find_citation
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -23,12 +24,15 @@ class SciciteSectitleDatasetReader(DatasetReader):
                  tokenizer: Tokenizer = None,
                  token_indexers: Dict[str, TokenIndexer] = None,
                  clean_citation: bool = True,
-                 with_elmo: bool = False
+                 with_elmo: bool = False,
+                 with_bert: bool = False
                  ) -> None:
         super().__init__(lazy)
         self._clean_citation = clean_citation
         self._tokenizer = tokenizer or WordTokenizer()
         self._token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
+        if with_bert:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
                                     "tokens": SingleIdTokenIndexer()}
@@ -70,6 +74,10 @@ class SciciteSectitleDatasetReader(DatasetReader):
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
 
+        fields['cit_text_for_bert'] = ListField([LabelField(encoding, skip_indexing=True) for encoding in
+                                                 self.bert_tokenizer.encode(citation_text, padding='max_length',
+                                                                            max_length=600)])
+
         if section_name is not None:
             fields['section_label'] = LabelField(section_name, label_namespace="section_labels")
 
@@ -80,7 +88,8 @@ class SciciteSectitleDatasetReader(DatasetReader):
     @classmethod
     def from_params(cls, params: Params):
         with_elmo = params.pop_bool("with_elmo", False)
-        return cls(with_elmo=with_elmo)
+        with_bert = params.pop_bool("with_bert", False)
+        return cls(with_elmo=with_elmo, with_bert=with_bert)
 
 
 @DatasetReader.register("scicite_cite_worthiness_data_reader")
@@ -90,13 +99,16 @@ class SciCiteWorthinessDataReader(DatasetReader):
                  lazy: bool = False,
                  tokenizer: Tokenizer = None,
                  clean_citation: bool = True,
-                 with_elmo: bool = False
+                 with_elmo: bool = False,
+                 with_bert: bool = False
                  # use_lexicon_features: bool = False,
                  # use_sparse_lexicon_features: bool = False
                  ) -> None:
         super().__init__(lazy)
         self._clean_citation = clean_citation
         self._tokenizer = tokenizer or WordTokenizer()
+        if with_bert:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
         if with_elmo:
             self._token_indexers = {"elmo": ELMoTokenCharactersIndexer(),
                                     "tokens": SingleIdTokenIndexer()}
@@ -142,6 +154,10 @@ class SciCiteWorthinessDataReader(DatasetReader):
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
 
+        fields['cit_text_for_bert'] = ListField([LabelField(encoding, skip_indexing=True) for encoding in
+                                                 self.bert_tokenizer.encode(citation_text, padding='max_length',
+                                                                            max_length=600)])
+
         if is_citation is not None:
             fields['is_citation'] = LabelField(str(is_citation), label_namespace="cite_worthiness_labels")
 
@@ -152,4 +168,5 @@ class SciCiteWorthinessDataReader(DatasetReader):
     @classmethod
     def from_params(cls, params: Params):
         with_elmo = params.pop_bool("with_elmo", False)
-        return cls(with_elmo=with_elmo)
+        with_bert = params.pop_bool("with_bert", False)
+        return cls(with_elmo=with_elmo, with_bert=with_bert)
