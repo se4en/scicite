@@ -70,7 +70,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         self.classifier_feedforward_2 = classifier_feedforward_2
         self.classifier_feedforward_3 = classifier_feedforward_3
         self.bert_model = bert_model
-        self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
+        #self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
 
         self.label_accuracy = CategoricalAccuracy()
         self.label_f1_metrics = {}
@@ -94,7 +94,15 @@ class ScaffoldBilstmAttentionClassifier(Model):
         weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
         class_weights = torch.FloatTensor(weights)#.cuda()
         #self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
-
+        self.focal_loss = torch.hub.load(
+            'adeelh/pytorch-multi-class-focal-loss',
+            model='FocalLoss',
+        #     alpha=torch.tensor([0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]),
+            alpha=torch.tensor([0.05, 0.1, 0.1, 0.24, 0.25, 0.26]),
+            gamma=2,
+            reduction='mean',
+            force_reload=False
+        )
         self.loss = torch.nn.CrossEntropyLoss()
 
         self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
@@ -161,7 +169,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
             output_dict = {"logits": logits}
 
             #loss = self.loss_main_task(logits, labels)
-            loss = self.loss(logits, labels)
+            loss = self.focal_loss(logits, labels)
             output_dict["loss"] = loss
 
             # compute F1 per label
