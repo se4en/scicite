@@ -42,8 +42,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
                  text_field_embedder: TextFieldEmbedder,
                  citation_text_encoder: Seq2SeqEncoder,
                  classifier_feedforward: FeedForward,
-                 classifier_feedforward_2: FeedForward,
-                 classifier_feedforward_3: FeedForward,
+                 # classifier_feedforward_2: FeedForward,
+                 # classifier_feedforward_3: FeedForward,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None,
                  report_auxiliary_metrics: bool = False,
@@ -67,8 +67,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
         self.num_classes_cite_worthiness = self.vocab.get_vocab_size("cite_worthiness_labels")
         self.citation_text_encoder = citation_text_encoder
         self.classifier_feedforward = classifier_feedforward
-        self.classifier_feedforward_2 = classifier_feedforward_2
-        self.classifier_feedforward_3 = classifier_feedforward_3
+        # self.classifier_feedforward_2 = classifier_feedforward_2
+        # self.classifier_feedforward_3 = classifier_feedforward_3
         self.bert_model = bert_model
         #self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
 
@@ -93,16 +93,16 @@ class ScaffoldBilstmAttentionClassifier(Model):
 
         weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
         class_weights = torch.FloatTensor(weights)#.cuda()
-        #self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
-        self.focal_loss = torch.hub.load(
-            'adeelh/pytorch-multi-class-focal-loss',
-            model='FocalLoss',
+        self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
+        #self.focal_loss = torch.hub.load(
+        #    'adeelh/pytorch-multi-class-focal-loss',
+        #    model='FocalLoss',
         #     alpha=torch.tensor([0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]),
-            alpha=torch.tensor([0.05, 0.1, 0.1, 0.24, 0.25, 0.26]),
-            gamma=2,
-            reduction='mean',
-            force_reload=False
-        )
+        #    alpha=torch.tensor([0.05, 0.1, 0.1, 0.24, 0.25, 0.26]),
+        #    gamma=2,
+        #    reduction='mean',
+        #    force_reload=False
+        #)
         self.loss = torch.nn.CrossEntropyLoss()
 
         self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
@@ -168,8 +168,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
 
             output_dict = {"logits": logits}
 
-            #loss = self.loss_main_task(logits, labels)
-            loss = self.focal_loss(logits, labels)
+            loss = self.loss_main_task(logits, labels)
+            #loss = self.focal_loss(logits, labels)
             output_dict["loss"] = loss
 
             # compute F1 per label
@@ -296,8 +296,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
         # citation_text_encoder = Seq2VecEncoder.from_params(params.pop("citation_text_encoder"))
         citation_text_encoder = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder"))
         classifier_feedforward = FeedForward.from_params(params.pop("classifier_feedforward"))
-        classifier_feedforward_2 = FeedForward.from_params(params.pop("classifier_feedforward_2"))
-        classifier_feedforward_3 = FeedForward.from_params(params.pop("classifier_feedforward_3"))
+        # classifier_feedforward_2 = FeedForward.from_params(params.pop("classifier_feedforward_2"))
+        # classifier_feedforward_3 = FeedForward.from_params(params.pop("classifier_feedforward_3"))
 
         initializer = InitializerApplicator.from_params(params.pop('initializer', []))
         regularizer = RegularizerApplicator.from_params(params.pop('regularizer', []))
@@ -316,8 +316,8 @@ class ScaffoldBilstmAttentionClassifier(Model):
                    text_field_embedder=text_field_embedder,
                    citation_text_encoder=citation_text_encoder,
                    classifier_feedforward=classifier_feedforward,
-                   classifier_feedforward_2=classifier_feedforward_2,
-                   classifier_feedforward_3=classifier_feedforward_3,
+                   # classifier_feedforward_2=classifier_feedforward_2,
+                   # classifier_feedforward_3=classifier_feedforward_3,
                    initializer=initializer,
                    regularizer=regularizer,
                    report_auxiliary_metrics=report_auxiliary_metrics,
