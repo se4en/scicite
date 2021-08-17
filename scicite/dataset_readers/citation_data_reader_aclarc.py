@@ -125,6 +125,7 @@ class AclarcDatasetReader(DatasetReader):
             'citation_text': TextField(citation_tokens, self._token_indexers),
         }
 
+        # TODO: text field
         fields['cit_text_for_bert'] = ListField([LabelField(encoding, skip_indexing=True) for encoding in
                                                 self.bert_tokenizer.encode(citation_text, padding='max_length',
                                                                            max_length=400)])
@@ -160,6 +161,7 @@ class AclarcDatasetReader(DatasetReader):
                 agent_clause_features = [f_1 or f_2 for f_1, f_2 in zip(agent_clause_features,
                                                                         _agent_features)]
 
+            # TODO: norm L2
             fields["pattern_features"] = ListField([LabelField(feature, skip_indexing=True)
                                                     for feature in formulaic_features + agent_features +
                                                     formulaic_clause_features + agent_clause_features])

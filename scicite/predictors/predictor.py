@@ -33,6 +33,7 @@ class CitationIntentPredictor(Predictor):
                 cited_paper_id=citation.cited_paper_id,
                 citation_excerpt_index=citation.citation_excerpt_index
             )
+            # TODO itstances
             outputs = self._model.forward_on_instance(instance)
             if self._dataset_reader.multilabel:
                 predictions = {outputs['positive_labels'][i]: outputs['class_probs'][i]

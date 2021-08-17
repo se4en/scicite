@@ -70,7 +70,10 @@ class ScaffoldBilstmAttentionClassifier(Model):
         # self.classifier_feedforward_2 = classifier_feedforward_2
         # self.classifier_feedforward_3 = classifier_feedforward_3
         self.bert_model = bert_model
-        #self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
+        # TODO: CNN for text ___ pooling
+
+        # TODO: gru,     not bidirectional
+        # self.lstm = nn.LSTM(768, 50, num_layers=1, bidirectional=True, batch_first=True)
 
         self.label_accuracy = CategoricalAccuracy()
         self.label_f1_metrics = {}
@@ -94,6 +97,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
         class_weights = torch.FloatTensor(weights)#.cuda()
         self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
+
         #self.focal_loss = torch.hub.load(
         #    'adeelh/pytorch-multi-class-focal-loss',
         #    model='FocalLoss',
@@ -103,6 +107,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         #    reduction='mean',
         #    force_reload=False
         #)
+
         self.loss = torch.nn.CrossEntropyLoss()
 
         self.attention_seq2seq = Attention(citation_text_encoder.get_output_dim())
@@ -144,6 +149,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         if self.bert_model is not None:
             citation_text_embedding = self.bert_model(cit_text_for_bert, return_dict=False)[0]
             citation_text_mask = util.get_text_field_mask(citation_text)
+            # TODO look on paddings
             encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
         else:
             citation_text_embedding = self.text_field_embedder(citation_text)
@@ -187,7 +193,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
             for i in range(self.num_classes_sections):
                 metric = self.label_f1_metrics_sections[
                     self.vocab.get_token_from_index(index=i, namespace="section_labels")]
-                metric(logits, section_label)
+                metric(class_probs, section_label)
 
         if is_citation is not None:  # second scaffold task
             logits = self.classifier_feedforward_3(encoded_citation_text)
@@ -198,11 +204,11 @@ class ScaffoldBilstmAttentionClassifier(Model):
             for i in range(self.num_classes_cite_worthiness):
                 metric = self.label_f1_metrics_cite_worthiness[
                     self.vocab.get_token_from_index(index=i, namespace="cite_worthiness_labels")]
-                metric(logits, is_citation)
+                metric(class_probs, is_citation)
 
         if self.predict_mode:
             logits = self.classifier_feedforward(encoded_citation_text)
-            class_probs = F.softmax(logits, dim=1)
+            # class_probs = F.softmax(logits, dim=1)
             output_dict = {"logits": logits}
 
         output_dict['citing_paper_id'] = citing_paper_id
@@ -288,6 +294,7 @@ class ScaffoldBilstmAttentionClassifier(Model):
         else:
             embedder_params = params.pop("text_field_embedder")
         with_bert = params.pop_bool("with_bert", False)
+        # TODO: to config
         if with_bert:
             bert_model = AutoModel.from_pretrained("allenai/scibert_scivocab_uncased")
         else:
