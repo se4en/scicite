@@ -67,6 +67,9 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                          classifier_feedforward_2, classifier_feedforward_3, initializer, regularizer,
                          report_auxiliary_metrics, predict_mode)
         self.bert_model = bert_model
+        if self.bert_model is not None:
+            for param in self.bert_model.parameters():
+                param.requires_grad = False
         self.weighted_loss = weighted_loss
         self.focal_loss = focal_loss
 
