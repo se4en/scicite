@@ -56,12 +56,15 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                  use_sparse_lexicon_features: bool = False,
                  use_pattern_features: bool = False,
                  with_elmo: bool = False,
+                 use_mask: bool = False,
                  with_bert: bool = False
                  ) -> None:
         super().__init__(lazy, tokenizer, token_indexers, use_lexicon_features,
                          use_sparse_lexicon_features, with_elmo)
         if with_bert:
             self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
+            self.bert_tokenizer.add_special_tokens(["@@CITATION"])
+        self.use_mask = use_mask
         self.use_pattern_features = use_pattern_features
 
     @overrides
@@ -106,8 +109,11 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                                           sents_before, sents_after, cite_marker_begin, cite_marker_end,
                                           cleaned_cite_text, citation_excerpt_index, citation_id, venue)
 
-        result.fields['cit_text_for_bert'] = ArrayField(self.bert_tokenizer.encode(citation_text, padding='max_length',
+        result.fields['cit_text_for_bert'] = ArrayField(self.bert_tokenizer.encode(cleaned_cite_text if self.use_mask
+                                                                                   else citation_text,
+                                                                                   padding='max_length',
                                                                                    max_length=400))
+
         if self.use_pattern_features:
             # sents_before[0] - citation sentence
             formulaic_features, _, _ = get_formulaic_features(sents_before[0], prefix='InCitSent:')
@@ -147,10 +153,12 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
         use_pattern_features = params.pop_bool("use_pattern_features", False)
         with_elmo = params.pop_bool("with_elmo", False)
         with_bert = params.pop_bool("with_bert", False)
+        use_mask = params.pop_bool("use_mask", False)
         params.assert_empty(cls.__name__)
         return cls(lazy=lazy, tokenizer=tokenizer,
                    use_lexicon_features=use_lexicon_features,
                    use_sparse_lexicon_features=use_sparse_lexicon_features,
                    use_pattern_features=use_pattern_features,
                    with_elmo=with_elmo,
-                   with_bert=with_bert)
+                   with_bert=with_bert,
+                   use_mask=use_mask)

@@ -50,6 +50,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                  predict_mode: bool = False,
                  weighted_loss: bool = False,
                  focal_loss: bool = False,
+                 use_mask: bool = False,
+                 tokenizer_len: int = 31090,
                  bert_model: Optional[AutoModel] = None,
                  ) -> None:
         """
@@ -67,9 +69,12 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                          classifier_feedforward_2, classifier_feedforward_3, initializer, regularizer,
                          report_auxiliary_metrics, predict_mode)
         self.bert_model = bert_model
+        self.use_mask = use_mask
         if self.bert_model is not None:
             for param in self.bert_model.parameters():
                 param.requires_grad = False
+            if self.use_mask:
+                self.bert_model.resize_token_embeddings(tokenizer_len)
         self.weighted_loss = weighted_loss
         self.focal_loss = focal_loss
 
@@ -243,6 +248,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         use_pattern_features = params.pop_bool("use_pattern_features", False)
         weighted_loss = params.pop_bool("weighted_loss", False)
         focal_loss = params.pop_bool("focal_loss", False)
+        tokenizer_len = params.pop_bool("tokenizer_len", False)
+        use_mask = params.pop_bool("use_mask", False)
         data_format = params.pop('data_format')
 
         report_auxiliary_metrics = params.pop_bool("report_auxiliary_metrics", False)
@@ -262,4 +269,6 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                    predict_mode=predict_mode,
                    weighted_loss=weighted_loss,
                    focal_loss=focal_loss,
-                   bert_model=bert_model)
+                   tokenizer_len=tokenizer_len,
+                   bert_model=bert_model,
+                   use_mask=use_mask)

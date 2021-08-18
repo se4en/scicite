@@ -14,6 +14,7 @@ local stringToBool(s) =
     "use_pattern_features": false,
     "use_sparse_lexicon_features": false,
     "with_bert": true,
+    "use_mask": true,
     "with_elmo": false
   },
   "dataset_reader_aux": {
@@ -36,9 +37,11 @@ local stringToBool(s) =
     "data_format": "jurgens",
     "with_elmo": false,
     "with_bert": true,
+    "use_mask": true,
     "weighted_loss": true,
     "focal_loss": false,
     "bert_name": "allenai/scibert_scivocab_uncased",
+    "tokenizer_len": 31091,
     "use_pattern_features": false,
     "use_sparse_lexicon_features": false,
     "type": "scaffold_bilstm_attention_classifier",
