@@ -63,7 +63,7 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                          use_sparse_lexicon_features, with_elmo)
         if with_bert:
             self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
-            self.bert_tokenizer.add_special_tokens(["@@CITATION"])
+            self.bert_tokenizer.add_tokens("@@CITATION", special_tokens=True)
         self.use_mask = use_mask
         self.use_pattern_features = use_pattern_features
 
