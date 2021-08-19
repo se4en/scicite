@@ -3,6 +3,7 @@ import json
 import jsonlines
 import logging
 
+import numpy as np
 import torch
 from transformers import AutoTokenizer
 from allennlp.data import Field
@@ -77,7 +78,8 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                 citing_paper_id=citation.citing_paper_id,
                 cited_paper_id=citation.cited_paper_id,
                 sents_before=citation.sents_before,
-                sents_after=citation.sents_after
+                sents_after=citation.sents_after,
+                cleaned_cite_text=citation.cleaned_cite_text
             )
 
     @overrides
@@ -109,10 +111,12 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                                           sents_before, sents_after, cite_marker_begin, cite_marker_end,
                                           cleaned_cite_text, citation_excerpt_index, citation_id, venue)
 
-        text_for_bert = cleaned_cite_text if self.use_mask else citation_text
-        result.fields['cit_text_for_bert'] = ArrayField(self.bert_tokenizer.encode(text_for_bert,
-                                                                                   padding='max_length',
-                                                                                   max_length=400))
+        result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(cleaned_cite_text
+                                                                                                if self.use_mask
+                                                                                                else citation_text,
+                                                                                                padding='max_length',
+                                                                                                max_length=400))
+                                                        .to(torch.int32))
 
         if self.use_pattern_features:
             # sents_before[0] - citation sentence
@@ -139,8 +143,9 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                                                                         _agent_features)]
 
                 # TODO: norm L2
-                result.fields["pattern_features"] = ArrayField(formulaic_features + agent_features +
-                                                               formulaic_clause_features + agent_clause_features)
+                result.fields["pattern_features"] = ArrayField(torch.Tensor(formulaic_features + agent_features +
+                                                                            formulaic_clause_features +
+                                                                            agent_clause_features).to(torch.int32))
 
         return result
 

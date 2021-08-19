@@ -2,6 +2,8 @@ from typing import Dict, List
 import jsonlines
 import logging
 
+import numpy as np
+import torch
 from overrides import overrides
 from allennlp.common import Params
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
@@ -41,8 +43,10 @@ class CustomAclSectionTitleDatasetReader(AclSectionTitleDatasetReader):
                          venue: str = None,
                          section_name: str = None) -> Instance:
         result = super().text_to_instance(citation_text, citing_paper_id, cited_paper_id, intent, venue, section_name)
-        result.fields['cit_text_for_bert'] = ArrayField(self.bert_tokenizer.encode(citation_text, padding='max_length',
-                                                                                   max_length=400))
+        result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(citation_text,
+                                                                                                padding='max_length',
+                                                                                                max_length=400))
+                                                        .to(torch.int32))
         return result
 
     @classmethod
@@ -82,8 +86,10 @@ class CustomAclCiteWorthinessDatasetReader(AclCiteWorthinessDatasetReader):
                          is_citation: bool = None) -> Instance:
         result = super().text_to_instance(citation_text, citing_paper_id, cited_paper_id, intent, cleaned_cite_text,
                                           section_name, is_citation)
-        result.fields['cit_text_for_bert'] = ArrayField(self.bert_tokenizer.encode(citation_text, padding='max_length',
-                                                                                   max_length=400))
+        result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(citation_text,
+                                                                                                padding='max_length',
+                                                                                                max_length=400))
+                                                        .to(torch.int32))
         return result
 
     @classmethod

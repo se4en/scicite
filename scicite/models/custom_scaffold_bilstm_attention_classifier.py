@@ -228,7 +228,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             embedder_params = params.pop("text_field_embedder")
         with_bert = params.pop_bool("with_bert", False)
         if with_bert:
-            bert_name = params.pop_bool("bert_name", False)
+            bert_name = params.pop("bert_name")
             bert_model = AutoModel.from_pretrained(bert_name)
         else:
             bert_model = None
@@ -248,7 +248,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         use_pattern_features = params.pop_bool("use_pattern_features", False)
         weighted_loss = params.pop_bool("weighted_loss", False)
         focal_loss = params.pop_bool("focal_loss", False)
-        tokenizer_len = params.pop_bool("tokenizer_len", False)
+        tokenizer_len = int(params.pop("tokenizer_len"))
         use_mask = params.pop_bool("use_mask", False)
         data_format = params.pop('data_format')
 
