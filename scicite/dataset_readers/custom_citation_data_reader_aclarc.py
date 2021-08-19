@@ -109,8 +109,8 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                                           sents_before, sents_after, cite_marker_begin, cite_marker_end,
                                           cleaned_cite_text, citation_excerpt_index, citation_id, venue)
 
-        result.fields['cit_text_for_bert'] = ArrayField(self.bert_tokenizer.encode(cleaned_cite_text if self.use_mask
-                                                                                   else citation_text,
+        text_for_bert = cleaned_cite_text if self.use_mask else citation_text
+        result.fields['cit_text_for_bert'] = ArrayField(self.bert_tokenizer.encode(text_for_bert,
                                                                                    padding='max_length',
                                                                                    max_length=400))
 
