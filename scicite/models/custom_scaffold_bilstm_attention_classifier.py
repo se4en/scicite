@@ -126,6 +126,9 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         """
         # pylint: disable=arguments-differ
         if self.bert_model is not None:
+            print("CIT_TEXT")
+            print(type(cit_text_for_bert))
+            print(cit_text_for_bert)
             citation_text_embedding = self.bert_model(cit_text_for_bert, return_dict=False)[0]
             citation_text_mask = (cit_text_for_bert == 0).type(torch.IntTensor)
             # TODO look on paddings
