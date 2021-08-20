@@ -129,6 +129,10 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             print("CIT_TEXT")
             print(type(cit_text_for_bert))
             print(cit_text_for_bert)
+            new_cit_tex_for_bert = cit_text_for_bert.to(torch.int32).cpu()
+            print("NEW_CIT_TEXT")
+            print(type(new_cit_tex_for_bert))
+            print(new_cit_tex_for_bert)
             citation_text_embedding = self.bert_model(cit_text_for_bert, return_dict=False)[0]
             citation_text_mask = (cit_text_for_bert == 0).type(torch.IntTensor)
             # TODO look on paddings
