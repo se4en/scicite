@@ -7,7 +7,7 @@ import allennlp
 import numpy as np
 import torch
 import torch.nn.functional as F
-from allennlp.common import Params, FromParams, Registrable
+from allennlp.common import Params, Registrable
 from allennlp.data import Instance
 from allennlp.data import Vocabulary
 from allennlp.data.dataset import Batch
@@ -341,3 +341,6 @@ class CNN(nn.Module):
                    paddings,
                    padding_mode,
                    strides)
+
+    def get_output_dim(self) -> int:
+        return 0
