@@ -284,7 +284,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                    use_cnn=use_cnn)
 
 
-class CNN(nn.Module, Registrable):
+class CNN(nn.Module):
 
     def __init__(self,
                  embed_dim=768,
@@ -327,7 +327,7 @@ class CNN(nn.Module, Registrable):
         return x_cat
 
     @classmethod
-    def from_params(cls, vocab: Vocabulary, params: Params) -> 'CNN':
+    def from_params(cls, params: Params) -> 'CNN':
         embed_dim = params.pop("embed_dim")
         filter_sizes = params.pop("filter_sizes")
         num_filters = params.pop("num_filters")
