@@ -7,7 +7,7 @@ import allennlp
 import numpy as np
 import torch
 import torch.nn.functional as F
-from allennlp.common import Params
+from allennlp.common import Params, FromParams, Registrable
 from allennlp.data import Instance
 from allennlp.data import Vocabulary
 from allennlp.data.dataset import Batch
@@ -51,6 +51,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                  weighted_loss: bool = False,
                  focal_loss: bool = False,
                  use_mask: bool = False,
+                 use_cnn: bool = False,
                  tokenizer_len: int = 31090,
                  bert_model: Optional[AutoModel] = None,
                  ) -> None:
@@ -70,6 +71,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                          report_auxiliary_metrics, predict_mode)
         self.bert_model = bert_model
         self.use_mask = use_mask
+        self.use_cnn = use_cnn
         if self.bert_model is not None:
             for param in self.bert_model.parameters():
                 param.requires_grad = False
@@ -138,8 +140,9 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             # shape: [batch, sent, output_dim]
             encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
 
-        # shape: [batch, output_dim]
-        attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text, return_attn_distribution=True)
+        if not self.use_cnn:
+            # shape: [batch, output_dim]
+            attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text, return_attn_distribution=True)
 
         # In training mode, labels are the citation intents
         # If in predict_mode, predict the citation intents
@@ -236,7 +239,11 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
 
         text_field_embedder = TextFieldEmbedder.from_params(embedder_params, vocab=vocab)
         # citation_text_encoder = Seq2VecEncoder.from_params(params.pop("citation_text_encoder"))
-        citation_text_encoder = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder"))
+        use_cnn = params.pop_bool("use_cnn", False)
+        if use_cnn:
+            citation_text_encoder = CNN.from_params(params.pop("citation_text_encoder"))
+        else:
+            citation_text_encoder = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder"))
         classifier_feedforward = FeedForward.from_params(params.pop("classifier_feedforward"))
         classifier_feedforward_2 = FeedForward.from_params(params.pop("classifier_feedforward_2"))
         classifier_feedforward_3 = FeedForward.from_params(params.pop("classifier_feedforward_3"))
@@ -251,6 +258,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         focal_loss = params.pop_bool("focal_loss", False)
         tokenizer_len = int(params.pop("tokenizer_len"))
         use_mask = params.pop_bool("use_mask", False)
+        use_cnn = params.pop_bool("use_cnn", False)
         data_format = params.pop('data_format')
 
         report_auxiliary_metrics = params.pop_bool("report_auxiliary_metrics", False)
@@ -272,4 +280,64 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                    focal_loss=focal_loss,
                    tokenizer_len=tokenizer_len,
                    bert_model=bert_model,
-                   use_mask=use_mask)
+                   use_mask=use_mask,
+                   use_cnn=use_cnn)
+
+
+class CNN(nn.Module, Registrable):
+
+    def __init__(self,
+                 embed_dim=768,
+                 filter_sizes=None,
+                 num_filters=None,
+                 paddings=None,
+                 padding_mode=None,
+                 strides=None
+                 ):
+        super(CNN, self).__init__()
+        # Embedding layer
+        if num_filters is None:
+            num_filters = [10, 10, 10]
+        if filter_sizes is None:
+            filter_sizes = [3, 4, 5]
+
+        # Conv Network
+        self.conv1d_list = nn.ModuleList([
+            nn.Conv1d(in_channels=embed_dim,
+                      out_channels=num_filters[i],
+                      padding=paddings[i],
+                      padding_mode=padding_mode,
+                      stride=strides[i],
+                      kernel_size=filter_sizes[i])
+            for i in range(len(filter_sizes))
+        ])
+
+    def forward(self, citation_text_embedding, citation_text_mask):
+        # Apply CNN and ReLU. Output shape: (b, num_filters[i], L_out)
+        x_conv_list = [F.relu(conv1d(citation_text_embedding)) for conv1d in self.conv1d_list]
+
+        # Max pooling. Output shape: (b, num_filters[i], 1)
+        x_pool_list = [F.max_pool1d(x_conv, kernel_size=x_conv.shape[2])
+                       for x_conv in x_conv_list]
+
+        # Concatenate x_pool_list to feed the fully connected layer.
+        # Output shape: (b, sum(num_filters))
+        x_cat = torch.cat([x_pool.squeeze(dim=2) for x_pool in x_pool_list],
+                         dim=1)
+        return x_cat
+
+    @classmethod
+    def from_params(cls, vocab: Vocabulary, params: Params) -> 'CNN':
+        embed_dim = params.pop("embed_dim")
+        filter_sizes = params.pop("filter_sizes")
+        num_filters = params.pop("num_filters")
+        paddings = params.pop("paddings")
+        padding_mode = params.pop("padding_mode")
+        strides = params.pop("strides")
+
+        return cls(embed_dim,
+                   filter_sizes,
+                   num_filters,
+                   paddings,
+                   padding_mode,
+                   strides)

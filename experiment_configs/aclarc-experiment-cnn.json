@@ -1,0 +1,123 @@
+local stringToBool(s) =
+  if s == "true" then true
+  else if s == "false" then false
+  else error "invalid boolean: " + std.manifestJson(s);
+
+{
+  "random_seed": std.extVar("SEED"),
+  "pytorch_seed": std.extVar("PYTORCH_SEED"),
+  "numpy_seed": std.extVar("NUMPY_SEED"),
+  "mixing_ratio": 0.06,
+  "mixing_ratio2": 0.21,
+  "dataset_reader": {
+    "type": "custom_aclarc_dataset_reader",
+    "use_pattern_features": false,
+    "use_sparse_lexicon_features": false,
+    "with_bert": true,
+    "use_mask": true,
+    "with_elmo": false
+  },
+  "dataset_reader_aux": {
+    "type": "custom_aclarc_section_title_data_reader",
+    "with_bert": true,
+    "with_elmo": false
+  },
+    "dataset_reader_aux2": {
+    "type": "custom_aclarc_cite_worthiness_data_reader",
+    "with_bert": true,
+    "with_elmo": false
+  },
+  "train_data_path_aux": "data/acl-arc/scaffolds/sections-scaffold-train.jsonl",
+  "train_data_path_aux2": "data/acl-arc/scaffolds/cite-worthiness-scaffold-train.jsonl",
+  "train_data_path": "data/acl-arc/train.jsonl",
+  "validation_data_path": "data/acl-arc/dev.jsonl",
+  "test_data_path": "data/acl-arc/test.jsonl",
+  "evaluate_on_test": true,
+  "model": {
+    "data_format": "jurgens",
+    "with_elmo": false,
+    "with_bert": true,
+    "use_mask": true,
+    "use_cnn": true,
+    "weighted_loss": true,
+    "focal_loss": false,
+    "bert_name": "allenai/scibert_scivocab_uncased",
+    "tokenizer_len": 31091,
+    "use_pattern_features": false,
+    "use_sparse_lexicon_features": false,
+    "type": "custom_scaffold_bilstm_attention_classifier",
+    "use_lexicon_features": false,
+    "report_auxiliary_metrics": true,
+    "multilabel": false,
+    "text_field_embedder": {
+      "tokens": {
+        "type": "embedding",
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+        "embedding_dim": 100,
+        "trainable": false
+      }
+    },
+      "lexicon_embedder": {
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+        "embedding_dim": 100,
+        "trainable": false,
+        "vocab_namespace": "lexicon_ids"
+      },
+      "citation_text_encoder": {
+      "type": "cnn",
+      "embed_dim": 768,
+      "filter_sizes": [3, 4, 5],
+      "num_filters": [100, 100, 100],
+      "paddings": [1, 2, 2],
+      "padding_mode": "zeros",
+      "strides": [1, 1, 1]
+    },
+    "classifier_feedforward": {
+      "input_dim": 300,
+      "num_layers": 2,
+      "hidden_dims": [50, 6],
+      "activations": ["relu", "relu"],
+      "dropout": [0.4, 0.0]
+    },
+    "classifier_feedforward_2": {
+      "input_dim": 300,
+      "num_layers": 2,
+      "hidden_dims": [50, 5],
+      "activations": ["relu", "relu"],
+      "dropout": [0.4, 0.0]
+    },
+    "classifier_feedforward_3": {
+      "input_dim": 300,
+      "num_layers": 2,
+      "hidden_dims": [50, 2],
+      "activations": ["relu", "relu"],
+      "dropout": [0.4, 0.0]
+    }
+  },
+  "iterator": {
+    "type": "bucket",
+    "sorting_keys": [["citation_text", "num_tokens"]],
+    "batch_size": 4
+  },
+  "iterator_aux": {
+    "type": "bucket",
+    "sorting_keys": [["citation_text", "num_tokens"]],
+    "batch_size": 4
+  },
+  "iterator_aux2": {
+    "type": "bucket",
+    "sorting_keys": [["citation_text", "num_tokens"]],
+    "batch_size": 4
+  },
+  "trainer": {
+    "num_epochs": 15,
+    "grad_clipping": 5.0,
+    "patience": 10,
+    "validation_metric": "+average_F1",
+    "cuda_device": 0,
+    "optimizer": {
+      "type": "adadelta",
+      "rho": 0.95
+    }
+  }
+}
