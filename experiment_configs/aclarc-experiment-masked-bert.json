@@ -94,17 +94,17 @@ local stringToBool(s) =
   "iterator": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 16
+    "batch_size": 4
   },
   "iterator_aux": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 16
+    "batch_size": 4
   },
   "iterator_aux2": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 16
+    "batch_size": 4
   },
   "trainer": {
     "num_epochs": 15,
