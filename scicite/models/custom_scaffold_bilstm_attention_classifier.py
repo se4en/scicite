@@ -72,6 +72,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         self.bert_model = bert_model
         self.use_mask = use_mask
         self.use_cnn = use_cnn
+
         if self.bert_model is not None:
             for param in self.bert_model.parameters():
                 param.requires_grad = False
@@ -128,32 +129,37 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         """
         # pylint: disable=arguments-differ
         if self.bert_model is not None:
-            new_cit_tex_for_bert = cit_text_for_bert.to(torch.int32).cpu()
+            new_cit_tex_for_bert = cit_text_for_bert.to(torch.int32).cuda()
             citation_text_embedding = self.bert_model(new_cit_tex_for_bert, return_dict=False)[0]
-            citation_text_embedding = citation_text_embedding.to(torch.int32).cuda()
-            citation_text_mask = (cit_text_for_bert == 0).to(torch.int32).cuda()
+            #citation_text_embedding = citation_text_embedding.to(torch.int32).cuda()
+            citation_text_mask = (cit_text_for_bert != 0).to(torch.int32)#.cuda()
             # TODO look on paddings
-            encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
         else:
             citation_text_embedding = self.text_field_embedder(citation_text)
             citation_text_mask = util.get_text_field_mask(citation_text)
 
+        if self.use_cnn:
             # shape: [batch, sent, output_dim]
+            # print("BEFORE_text_encoder", citation_text_embedding.shape)
+            encoded_citation_text = self.citation_text_encoder(citation_text_embedding)
+            # print("AFTER_text_encoder", encoded_citation_text.shape)
+        else:
             encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
-
-        if not self.use_cnn:
             # shape: [batch, output_dim]
             attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text, return_attn_distribution=True)
 
         # In training mode, labels are the citation intents
         # If in predict_mode, predict the citation intents
         if labels is not None:
+            #print("\nENC_CIT_TEXT=\n", encoded_citation_text.shape)
+
             if pattern_features is not None:
                 feedforward_input = torch.cat((pattern_features, encoded_citation_text), 1)
                 logits = self.classifier_feedforward(feedforward_input)
             else:
                 logits = self.classifier_feedforward(encoded_citation_text)
 
+            #print("LOGITS=", logits)
             class_probs = F.softmax(logits, dim=1)
 
             output_dict = {"logits": logits}
@@ -202,7 +208,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         output_dict['cited_paper_id'] = cited_paper_id
         output_dict['citation_excerpt_index'] = citation_excerpt_index
         output_dict['citation_id'] = citation_id
-        output_dict['attn_dist'] = attn_dist  # also return attention distribution for analysis
+        if not self.use_cnn:
+            output_dict['attn_dist'] = attn_dist  # also return attention distribution for analysis
         output_dict['citation_text'] = citation_text['tokens']
         return output_dict
 
@@ -259,7 +266,6 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         focal_loss = params.pop_bool("focal_loss", False)
         tokenizer_len = int(params.pop("tokenizer_len"))
         use_mask = params.pop_bool("use_mask", False)
-        use_cnn = params.pop_bool("use_cnn", False)
         data_format = params.pop('data_format')
 
         report_auxiliary_metrics = params.pop_bool("report_auxiliary_metrics", False)
@@ -313,9 +319,14 @@ class CNN(nn.Module):
             for i in range(len(filter_sizes))
         ])
 
-    def forward(self, citation_text_embedding, citation_text_mask):
+    def forward(self, citation_text_embedding):
+        #print("EMB_DIM_BEFORE", citation_text_embedding.shape)
+        new_citation_text_embedding = citation_text_embedding.transpose(1, 2).contiguous()
+        #print("EMB_DIM_AFTER", citation_text_embedding.shape)
+
         # Apply CNN and ReLU. Output shape: (b, num_filters[i], L_out)
-        x_conv_list = [F.relu(conv1d(citation_text_embedding)) for conv1d in self.conv1d_list]
+        x_conv_list = [F.relu(conv1d(new_citation_text_embedding)) for conv1d in self.conv1d_list]
+        #print("X_CONV_EMB", x_conv_list)
 
         # Max pooling. Output shape: (b, num_filters[i], 1)
         x_pool_list = [F.max_pool1d(x_conv, kernel_size=x_conv.shape[2])
@@ -325,6 +336,8 @@ class CNN(nn.Module):
         # Output shape: (b, sum(num_filters))
         x_cat = torch.cat([x_pool.squeeze(dim=2) for x_pool in x_pool_list],
                          dim=1)
+        #print("X_CAT", x_cat.shape)
+
         return x_cat
 
     @classmethod

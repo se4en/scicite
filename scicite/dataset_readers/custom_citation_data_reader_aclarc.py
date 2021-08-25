@@ -116,7 +116,7 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                                                                                                 else citation_text,
                                                                                                 padding='max_length',
                                                                                                 max_length=400))
-                                                        .to(torch.int32).cuda())
+                                                        .to(torch.int32).cpu())
 
         if self.use_pattern_features:
             # sents_before[0] - citation sentence
