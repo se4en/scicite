@@ -44,6 +44,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                  classifier_feedforward: FeedForward,
                  classifier_feedforward_2: FeedForward,
                  classifier_feedforward_3: FeedForward,
+                 citation_text_encoder_2: Seq2SeqEncoder = None,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None,
                  report_auxiliary_metrics: bool = False,
@@ -52,6 +53,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                  focal_loss: bool = False,
                  use_mask: bool = False,
                  use_cnn: bool = False,
+                 use_glove: bool = False,
                  tokenizer_len: int = 31090,
                  bert_model: Optional[AutoModel] = None,
                  ) -> None:
@@ -72,6 +74,10 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         self.bert_model = bert_model
         self.use_mask = use_mask
         self.use_cnn = use_cnn
+        self.use_glove = use_glove
+        if self.use_glove:
+            self.citation_text_encoder_2 = citation_text_encoder_2
+            self.attention_seq2seq_2 = Attention(citation_text_encoder_2.get_output_dim())
         if self.bert_model is not None:
             for param in self.bert_model.parameters():
                 param.requires_grad = False
@@ -130,8 +136,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         if self.bert_model is not None:
             new_cit_tex_for_bert = cit_text_for_bert.to(torch.int32).cuda()
             citation_text_embedding = self.bert_model(new_cit_tex_for_bert, return_dict=False)[0]
-            #citation_text_embedding = citation_text_embedding.to(torch.int32).cuda()
-            citation_text_mask = (cit_text_for_bert != 0).to(torch.int32)#.cuda()
+            # citation_text_embedding = citation_text_embedding.to(torch.int32).cuda()
+            citation_text_mask = (cit_text_for_bert != 0).to(torch.int32)  # .cuda()
             # TODO look on paddings
         else:
             citation_text_embedding = self.text_field_embedder(citation_text)
@@ -145,6 +151,17 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             # shape: [batch, output_dim]
             attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text,
                                                                       return_attn_distribution=True)
+
+        if self.use_glove:
+            citation_text_embedding_2 = self.text_field_embedder(citation_text)
+            citation_text_mask_2 = util.get_text_field_mask(citation_text)
+            # shape: [batch, sent, output_dim]
+            encoded_citation_text_2 = self.citation_text_encoder_2(citation_text_embedding_2, citation_text_mask_2)
+            # shape: [batch, output_dim]
+            attn_dist_2, encoded_citation_text_2 = self.attention_seq2seq_2(encoded_citation_text_2,
+                                                                          return_attn_distribution=True)
+            # concat encoded texts
+            encoded_citation_text = torch.cat((encoded_citation_text, encoded_citation_text_2), 1)
 
         # In training mode, labels are the citation intents
         # If in predict_mode, predict the citation intents
@@ -205,6 +222,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         output_dict['citation_id'] = citation_id
         if not self.use_cnn:
             output_dict['attn_dist'] = attn_dist  # also return attention distribution for analysis
+        if self.use_glove:
+            output_dict['attn_dist_2'] = attn_dist_2
         output_dict['citation_text'] = citation_text['tokens']
         return output_dict
 
@@ -239,6 +258,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             bert_model = AutoModel.from_pretrained(bert_name)
         else:
             bert_model = None
+        with_glove = params.pop_bool("with_glove", False)
 
         text_field_embedder = TextFieldEmbedder.from_params(embedder_params, vocab=vocab)
         # citation_text_encoder = Seq2VecEncoder.from_params(params.pop("citation_text_encoder"))
@@ -247,6 +267,12 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             citation_text_encoder = CNN.from_params(params.pop("citation_text_encoder"))
         else:
             citation_text_encoder = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder"))
+        if with_glove:
+            if use_cnn:
+                citation_text_encoder_2 = CNN.from_params(params.pop("citation_text_encoder_2"))
+            else:
+                citation_text_encoder_2 = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder_2"))
+
         classifier_feedforward = FeedForward.from_params(params.pop("classifier_feedforward"))
         classifier_feedforward_2 = FeedForward.from_params(params.pop("classifier_feedforward_2"))
         classifier_feedforward_3 = FeedForward.from_params(params.pop("classifier_feedforward_3"))
@@ -271,6 +297,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         return cls(vocab=vocab,
                    text_field_embedder=text_field_embedder,
                    citation_text_encoder=citation_text_encoder,
+                   citation_text_encoder_2=citation_text_encoder_2,
                    classifier_feedforward=classifier_feedforward,
                    classifier_feedforward_2=classifier_feedforward_2,
                    classifier_feedforward_3=classifier_feedforward_3,
@@ -283,7 +310,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                    tokenizer_len=tokenizer_len,
                    bert_model=bert_model,
                    use_mask=use_mask,
-                   use_cnn=use_cnn)
+                   use_cnn=use_cnn,
+                   use_glove=with_glove)
 
 
 class CNN(nn.Module):
@@ -326,7 +354,7 @@ class CNN(nn.Module):
         # Concatenate x_pool_list to feed the fully connected layer.
         # Output shape: (b, sum(num_filters))
         x_cat = torch.cat([x_pool.squeeze(dim=2) for x_pool in x_pool_list],
-                         dim=1)
+                          dim=1)
         return x_cat
 
     @classmethod
