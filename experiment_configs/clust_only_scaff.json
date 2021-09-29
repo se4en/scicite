@@ -7,14 +7,14 @@ local stringToBool(s) =
   "random_seed": std.extVar("SEED"),
   "pytorch_seed": std.extVar("PYTORCH_SEED"),
   "numpy_seed": std.extVar("NUMPY_SEED"),
-  "mixing_ratio": 0.06,
-  "mixing_ratio2": 0.21,
+  "mixing_ratio": 1.0,
+  "mixing_ratio2": 1.0,
   "dataset_reader": {
     "type": "custom_aclarc_dataset_reader",
     "use_pattern_features": false,
     "use_sparse_lexicon_features": false,
     "with_bert": true,
-    "use_mask": true,
+    "use_mask": false,
     "with_elmo": false
   },
   "dataset_reader_aux": {
@@ -30,15 +30,14 @@ local stringToBool(s) =
   "train_data_path_aux": "data/acl-arc/scaffolds/sections-scaffold-train.jsonl",
   "train_data_path_aux2": "data/acl-arc/scaffolds/cite-worthiness-scaffold-train.jsonl",
   "train_data_path": "data/acl-arc/train.jsonl",
-  "validation_data_path": "data/acl-arc/dev.jsonl",
   "test_data_path": "data/acl-arc/test.jsonl",
   "evaluate_on_test": true,
   "model": {
     "data_format": "jurgens",
     "with_elmo": false,
+    "with_glove": false,
     "with_bert": true,
-    "use_mask": true,
-    "use_cnn": true,
+    "use_mask": false,
     "weighted_loss": true,
     "focal_loss": false,
     "bert_name": "allenai/scibert_scivocab_uncased",
@@ -64,57 +63,55 @@ local stringToBool(s) =
         "vocab_namespace": "lexicon_ids"
       },
       "citation_text_encoder": {
-      "type": "cnn",
-      "embed_dim": 768,
-      "filter_sizes": [3, 4, 5],
-      "num_filters": [100, 100, 100],
-      "paddings": [1, 2, 2],
-      "padding_mode": "zeros",
-      "strides": [1, 1, 1]
-    },
+      "type": "gru",
+      "bidirectional": true,
+      "input_size": 768,
+      "hidden_size": 50,
+      "num_layers": 1
+      },
     "classifier_feedforward": {
-      "input_dim": 300,
+      "input_dim": 100,
       "num_layers": 2,
-      "hidden_dims": [50, 6],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "hidden_dims": [20, 6],
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     },
     "classifier_feedforward_2": {
-      "input_dim": 300,
+      "input_dim": 100,
       "num_layers": 2,
-      "hidden_dims": [50, 5],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "hidden_dims": [20, 5],
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     },
     "classifier_feedforward_3": {
-      "input_dim": 300,
+      "input_dim": 100,
       "num_layers": 2,
-      "hidden_dims": [50, 2],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "hidden_dims": [20, 2],
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     }
   },
   "iterator": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 4
+    "batch_size": 8
   },
   "iterator_aux": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 4
+    "batch_size": 8
   },
   "iterator_aux2": {
     "type": "bucket",
     "sorting_keys": [["citation_text", "num_tokens"]],
-    "batch_size": 4
+    "batch_size": 8
   },
   "trainer": {
-    "num_epochs": 15,
-    "grad_clipping": 5.0,
+    "num_epochs": 1,
+    "grad_clipping": 10.0,
     "patience": 10,
     "validation_metric": "+average_F1",
-    "cuda_device": -1,
+    "cuda_device": 0,
     "optimizer": {
       "type": "adadelta",
       "rho": 0.95
