@@ -46,7 +46,7 @@ class CustomAclSectionTitleDatasetReader(AclSectionTitleDatasetReader):
         result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(citation_text,
                                                                                                 padding='max_length',
                                                                                                 max_length=400))
-                                                        .to(torch.int32).cpu())
+                                                        .to(torch.int32))
         return result
 
     @classmethod
@@ -89,7 +89,7 @@ class CustomAclCiteWorthinessDatasetReader(AclCiteWorthinessDatasetReader):
         result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(citation_text,
                                                                                                 padding='max_length',
                                                                                                 max_length=400))
-                                                        .to(torch.int32).cpu())
+                                                        .to(torch.int32))
         return result
 
     @classmethod
