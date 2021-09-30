@@ -134,8 +134,11 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         """
         # pylint: disable=arguments-differ
         if self.bert_model is not None:
-            new_cit_tex_for_bert = cit_text_for_bert.to(torch.int32).cuda()
-            citation_text_embedding = self.bert_model(new_cit_tex_for_bert, return_dict=False)[0]
+            if not self.predict_mode:
+                new_cit_text_for_bert = cit_text_for_bert.to(torch.int32).cuda()
+            else:
+                new_cit_text_for_bert = cit_text_for_bert.to(torch.int32).cpu()
+            citation_text_embedding = self.bert_model(new_cit_text_for_bert, return_dict=False)[0]
             # citation_text_embedding = citation_text_embedding.to(torch.int32).cuda()
             citation_text_mask = (cit_text_for_bert != 0).to(torch.int32)  # .cuda()
             # TODO look on paddings
@@ -267,6 +270,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             citation_text_encoder = CNN.from_params(params.pop("citation_text_encoder"))
         else:
             citation_text_encoder = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder"))
+        citation_text_encoder_2 = None
         if with_glove:
             if use_cnn:
                 citation_text_encoder_2 = CNN.from_params(params.pop("citation_text_encoder_2"))
