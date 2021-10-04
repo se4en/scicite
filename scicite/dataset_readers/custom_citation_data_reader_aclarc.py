@@ -143,9 +143,9 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                                                                         _agent_features)]
 
                 # TODO: norm L2
-                result.fields["pattern_features"] = ArrayField(torch.Tensor(formulaic_features + agent_features +
-                                                                            formulaic_clause_features +
-                                                                            agent_clause_features).to(torch.int32))
+            result.fields["pattern_features"] = ArrayField(torch.Tensor(formulaic_features + agent_features +
+                                                                        formulaic_clause_features +
+                                                                        agent_clause_features).to(torch.int32))
 
         return result
 

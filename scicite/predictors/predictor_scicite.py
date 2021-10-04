@@ -57,7 +57,8 @@ class PredictorSciCite(Predictor):
         If you don't want your outputs in JSON-lines format
         you can override this function to output them differently.
         """
-        keys = ['citedPaperId', 'citingPaperId', 'excerptCitationIntents', 'prediction']
+        keys = ['citedPaperId', 'citingPaperId', 'excerptCitationIntents', 'prediction', 'probabilities',
+                'citation_text']
         for k in outputs.copy():
             if k not in keys:
                 outputs.pop(k)
