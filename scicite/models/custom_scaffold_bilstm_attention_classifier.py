@@ -134,8 +134,12 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         """
         # pylint: disable=arguments-differ
         if self.bert_model is not None:
-            new_cit_tex_for_bert = cit_text_for_bert.to(torch.int32).cuda()
-            citation_text_embedding = self.bert_model(new_cit_tex_for_bert, return_dict=False)[0]
+            if not self.predict_mode:
+                new_cit_text_for_bert = cit_text_for_bert.to(torch.int32).cuda()
+            else:
+                new_cit_text_for_bert = cit_text_for_bert.to(torch.int32).cpu()
+            # print("DEVICE=", new_cit_text_for_bert.get_device())
+            citation_text_embedding = self.bert_model(new_cit_text_for_bert, return_dict=False)[0]
             # citation_text_embedding = citation_text_embedding.to(torch.int32).cuda()
             citation_text_mask = (cit_text_for_bert != 0).to(torch.int32)  # .cuda()
             # TODO look on paddings
@@ -146,7 +150,6 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         if self.use_cnn:
             encoded_citation_text = self.citation_text_encoder(citation_text_embedding)
         else:
-            # shape: [batch, sent, output_dim]
             encoded_citation_text = self.citation_text_encoder(citation_text_embedding, citation_text_mask)
             # shape: [batch, output_dim]
             attn_dist, encoded_citation_text = self.attention_seq2seq(encoded_citation_text,
@@ -167,7 +170,11 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         # If in predict_mode, predict the citation intents
         if labels is not None:
             if pattern_features is not None:
-                feedforward_input = torch.cat((pattern_features, encoded_citation_text), 1)
+                if not self.predict_mode:
+                    new_pattern_features = pattern_features.to(torch.int32).cuda()
+                else:
+                    new_pattern_features = pattern_features.to(torch.int32).cpu()
+                feedforward_input = torch.cat((new_pattern_features, encoded_citation_text), 1)
                 logits = self.classifier_feedforward(feedforward_input)
             else:
                 logits = self.classifier_feedforward(encoded_citation_text)
@@ -176,6 +183,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
 
             output_dict = {"logits": logits}
 
+            #loss = torch.tensor([0.0], requires_grad=False)            
             if self.focal_loss or self.weighted_loss:
                 loss = self.loss_main_task(logits, labels)
             else:
@@ -225,6 +233,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         if self.use_glove:
             output_dict['attn_dist_2'] = attn_dist_2
         output_dict['citation_text'] = citation_text['tokens']
+        output_dict['attn_output'] = encoded_citation_text     
         return output_dict
 
     @overrides
@@ -267,6 +276,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
             citation_text_encoder = CNN.from_params(params.pop("citation_text_encoder"))
         else:
             citation_text_encoder = Seq2SeqEncoder.from_params(params.pop("citation_text_encoder"))
+        citation_text_encoder_2 = None
         if with_glove:
             if use_cnn:
                 citation_text_encoder_2 = CNN.from_params(params.pop("citation_text_encoder_2"))

@@ -30,7 +30,10 @@ class CitationIntentPredictorACL(Predictor):
             intent=citation.intent,
             citing_paper_id=citation.citing_paper_id,
             cited_paper_id=citation.cited_paper_id,
-            citation_excerpt_index=citation.citation_excerpt_index
+            citation_excerpt_index=citation.citation_excerpt_index,
+            sents_before=citation.sents_before,
+            sents_after=citation.sents_after,
+            cleaned_cite_text=citation.cleaned_cite_text
         )
         outputs = self._model.forward_on_instance(instance)
 
@@ -39,6 +42,7 @@ class CitationIntentPredictorACL(Predictor):
         return_dict['citedPaperId'] = outputs['cited_paper_id']
         return_dict['probabilities'] = outputs['probabilities']
         return_dict['prediction'] = outputs['prediction']
+        return_dict['attn_output'] = outputs['attn_output']
         return return_dict
 
     @overrides
@@ -47,7 +51,7 @@ class CitationIntentPredictorACL(Predictor):
         If you don't want your outputs in JSON-lines format
         you can override this function to output them differently.
         """
-        keys = ['citation_id', 'prediction', 'probabilities', 'citation_text']
+        keys = ['citation_id', 'prediction', 'probabilities', 'citation_text', 'attn_output']
         for k in outputs.copy():
             if k not in keys:
                 outputs.pop(k)
