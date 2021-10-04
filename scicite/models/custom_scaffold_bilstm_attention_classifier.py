@@ -55,6 +55,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                  use_cnn: bool = False,
                  use_glove: bool = False,
                  tokenizer_len: int = 31090,
+                 scicite: bool = False,
                  bert_model: Optional[AutoModel] = None,
                  ) -> None:
         """
@@ -75,6 +76,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         self.use_mask = use_mask
         self.use_cnn = use_cnn
         self.use_glove = use_glove
+        self.scicite = scicite
         if self.use_glove:
             self.citation_text_encoder_2 = citation_text_encoder_2
             self.attention_seq2seq_2 = Attention(citation_text_encoder_2.get_output_dim())
@@ -87,7 +89,10 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         self.focal_loss = focal_loss
 
         if self.weighted_loss:
-            weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
+            if self.scicite:
+                weights = [0.57620915, 1.16465863, 2.46367091]
+            else:
+                weights = [0.32447342, 0.88873626, 0.92165242, 3.67613636, 4.49305556, 4.6884058]
             class_weights = torch.FloatTensor(weights)  # .cuda()
             self.loss_main_task = torch.nn.CrossEntropyLoss(weight=class_weights)
         elif self.focal_loss:
@@ -297,6 +302,7 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         focal_loss = params.pop_bool("focal_loss", False)
         tokenizer_len = int(params.pop("tokenizer_len"))
         use_mask = params.pop_bool("use_mask", False)
+        scicite = params.pop_bool("is_scicite", False)
         data_format = params.pop('data_format')
 
         report_auxiliary_metrics = params.pop_bool("report_auxiliary_metrics", False)
@@ -321,7 +327,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                    bert_model=bert_model,
                    use_mask=use_mask,
                    use_cnn=use_cnn,
-                   use_glove=with_glove)
+                   use_glove=with_glove,
+                   scicite=scicite)
 
 
 class CNN(nn.Module):
