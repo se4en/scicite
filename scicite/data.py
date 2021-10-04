@@ -548,6 +548,11 @@ def read_s2_excerpt(ex):
     Returns:
         Citation object
     """
+    try:
+        sents_before = [ex['text']]
+    except KeyError:
+        sents_before = []
+
     citation = Citation(
         text=ex['string'],
         citing_paper_id=ex['citingPaperId'],
@@ -563,7 +568,7 @@ def read_s2_excerpt(ex):
         section_title=ex['sectionName'],
         intent=ex['label'],
         # cite_marker_offset=offsets,  # Not useful here
-        sents_before=None,  # not available for s2 data
+        sents_before=sents_before,  # not available for s2 data
         sents_after=None,  # not available for s2 data
         citation_excerpt_index=ex['excerpt_index'],
         cleaned_cite_text=regex_find_citation.sub('', ex['string'])
