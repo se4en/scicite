@@ -17,6 +17,7 @@ from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
 from scicite import AclarcDatasetReader
+from scicite.helper import regex_find_citation
 from scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
 from scicite.data import DataReaderJurgens
 from scicite.data import read_jurgens_jsonline
@@ -56,12 +57,14 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                  use_lexicon_features: bool = False,
                  use_sparse_lexicon_features: bool = False,
                  use_pattern_features: bool = False,
+                 clean_citation: bool = True,
                  with_elmo: bool = False,
                  use_mask: bool = False,
                  with_bert: bool = False
                  ) -> None:
         super().__init__(lazy, tokenizer, token_indexers, use_lexicon_features,
                          use_sparse_lexicon_features, with_elmo)
+        self._clean_citation = clean_citation
         if with_bert:
             self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
             self.bert_tokenizer.add_tokens("@@CITATION", special_tokens=True)
@@ -72,8 +75,14 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
     def _read(self, file_path):
         for ex in jsonlines.open(file_path):
             citation = read_jurgens_jsonline(ex)
+
+            if self._clean_citation:
+                citation_text = regex_find_citation.sub("", citation.text)
+            else:
+                citation_text = citation.text    
+
             yield self.text_to_instance(
-                citation_text=citation.text,
+                citation_text=citation_text,
                 intent=citation.intent,
                 citing_paper_id=citation.citing_paper_id,
                 cited_paper_id=citation.cited_paper_id,
@@ -158,6 +167,7 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
         use_lexicon_features = params.pop_bool("use_lexicon_features", False)
         use_sparse_lexicon_features = params.pop_bool("use_sparse_lexicon_features", False)
         use_pattern_features = params.pop_bool("use_pattern_features", False)
+        clean_citation = params.pop_bool("clean_citation", True)
         with_elmo = params.pop_bool("with_elmo", False)
         with_bert = params.pop_bool("with_bert", False)
         use_mask = params.pop_bool("use_mask", False)
@@ -166,6 +176,7 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                    use_lexicon_features=use_lexicon_features,
                    use_sparse_lexicon_features=use_sparse_lexicon_features,
                    use_pattern_features=use_pattern_features,
+                   clean_citation=clean_citation,
                    with_elmo=with_elmo,
                    with_bert=with_bert,
                    use_mask=use_mask)
