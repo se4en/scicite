@@ -11,7 +11,7 @@ local stringToBool(s) =
   "mixing_ratio2": 0.21,
   "dataset_reader": {
     "type": "custom_aclarc_dataset_reader",
-    "use_pattern_features": false,
+    "use_pattern_features": true,
     "use_sparse_lexicon_features": false,
     "with_bert": true,
     "use_mask": false,
@@ -36,14 +36,14 @@ local stringToBool(s) =
   "model": {
     "data_format": "jurgens",
     "with_elmo": false,
-    "with_glove": true,
+    "with_glove": false,
     "with_bert": true,
     "use_mask": false,
     "weighted_loss": true,
     "focal_loss": false,
     "bert_name": "allenai/scibert_scivocab_uncased",
     "tokenizer_len": 31091,
-    "use_pattern_features": false,
+    "use_pattern_features": true,
     "use_sparse_lexicon_features": false,
     "type": "custom_scaffold_bilstm_attention_classifier",
     "use_lexicon_features": false,
@@ -70,33 +70,26 @@ local stringToBool(s) =
       "hidden_size": 50,
       "num_layers": 1
       },
-      "citation_text_encoder_2": {
-      "type": "gru",
-      "bidirectional": true,
-      "input_size": 100,
-      "hidden_size": 50,
-      "num_layers": 1
-      },
     "classifier_feedforward": {
-      "input_dim": 200,
+      "input_dim": 212,
       "num_layers": 2,
       "hidden_dims": [40, 6],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     },
     "classifier_feedforward_2": {
-      "input_dim": 200,
+      "input_dim": 100,
       "num_layers": 2,
       "hidden_dims": [40, 5],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     },
     "classifier_feedforward_3": {
-      "input_dim": 200,
+      "input_dim": 100,
       "num_layers": 2,
-      "hidden_dims": [40, 2],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "hidden_dims": [20, 2],
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     }
   },
   "iterator": {
@@ -115,7 +108,7 @@ local stringToBool(s) =
     "batch_size": 16
   },
   "trainer": {
-    "num_epochs": 15,
+    "num_epochs": 20,
     "grad_clipping": 5.0,
     "patience": 10,
     "validation_metric": "+average_F1",

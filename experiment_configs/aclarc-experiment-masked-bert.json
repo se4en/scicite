@@ -73,22 +73,22 @@ local stringToBool(s) =
       "input_dim": 100,
       "num_layers": 2,
       "hidden_dims": [20, 6],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     },
     "classifier_feedforward_2": {
       "input_dim": 100,
       "num_layers": 2,
       "hidden_dims": [20, 5],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     },
     "classifier_feedforward_3": {
       "input_dim": 100,
       "num_layers": 2,
       "hidden_dims": [20, 2],
-      "activations": ["relu", "relu"],
-      "dropout": [0.4, 0.0]
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
     }
   },
   "iterator": {
