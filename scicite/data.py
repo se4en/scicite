@@ -176,6 +176,11 @@ class DataReaderS2(BaseReader):
                     citation_text = excerpt_obj['string']
                 section_name = excerpt_obj['sectionName']
 
+                try:
+                    sents_before = [ex['text']]
+                except KeyError:
+                    sents_before = []
+
                 # in case of multilabel add all possible labels and their negative prefix
                 if self.multilabel:
                     intents = [e['intent'] if e['score'] > 0.0
@@ -198,7 +203,7 @@ class DataReaderS2(BaseReader):
                     section_title=section_name,
                     intent=intents,
                     cite_marker_offset=offsets,  # Not useful here
-                    sents_before=None,  # not available for s2 data
+                    sents_before=sents_before,  # one-elem list with one sentence
                     sents_after=None,  # not available for s2 data
                     citation_excerpt_index=excerpt_index,
                     cleaned_cite_text=citation_text
@@ -543,6 +548,11 @@ def read_s2_excerpt(ex):
     Returns:
         Citation object
     """
+    try:
+        sents_before = [ex['text']]
+    except KeyError:
+        sents_before = []
+
     citation = Citation(
         text=ex['string'],
         citing_paper_id=ex['citingPaperId'],
@@ -558,7 +568,7 @@ def read_s2_excerpt(ex):
         section_title=ex['sectionName'],
         intent=ex['label'],
         # cite_marker_offset=offsets,  # Not useful here
-        sents_before=None,  # not available for s2 data
+        sents_before=sents_before,  # not available for s2 data
         sents_after=None,  # not available for s2 data
         citation_excerpt_index=ex['excerpt_index'],
         cleaned_cite_text=regex_find_citation.sub('', ex['string'])

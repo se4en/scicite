@@ -16,10 +16,10 @@ from allennlp.data.instance import Instance
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer, ELMoTokenCharactersIndexer
 
-from scicite import AclarcDatasetReader
-from scicite.helper import regex_find_citation
+from scicite import SciciteDatasetReader
 from scicite.resources.lexicons import ALL_ACTION_LEXICONS, ALL_CONCEPT_LEXICONS
 from scicite.data import DataReaderJurgens
+from scicite.data import DataReaderS2, DataReaderS2ExcerptJL
 from scicite.data import read_jurgens_jsonline
 from scicite.compute_features import is_in_lexicon, get_formulaic_features, get_agent_features
 
@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 from scicite.constants import S2_CATEGORIES, NONE_LABEL_NAME
 
 
-@DatasetReader.register("custom_aclarc_dataset_reader")
-class CustomAclarcDatasetReader(AclarcDatasetReader):
+@DatasetReader.register("custom_scicite_dataset_reader")
+class CustomSciciteDatasetReader(SciciteDatasetReader):
     """
     Reads a JSON-lines file containing papers from the Semantic Scholar database, and creates a
     dataset suitable for document classification using these papers.
@@ -53,39 +53,38 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
     def __init__(self,
                  lazy: bool = False,
                  tokenizer: Tokenizer = None,
-                 token_indexers: Dict[str, TokenIndexer] = None,
                  use_lexicon_features: bool = False,
                  use_sparse_lexicon_features: bool = False,
+                 multilabel: bool = False,
                  use_pattern_features: bool = False,
-                 clean_citation: bool = True,
                  with_elmo: bool = False,
                  use_mask: bool = False,
-                 with_bert: bool = False
+                 with_bert: bool = False,
+                 reader_format: str = 'flat'
                  ) -> None:
-        super().__init__(lazy, tokenizer, token_indexers, use_lexicon_features,
-                         use_sparse_lexicon_features, with_elmo)
-        self._clean_citation = clean_citation
+        super().__init__(lazy, tokenizer, use_lexicon_features, multilabel,
+                         use_sparse_lexicon_features, with_elmo, reader_format)
         if with_bert:
             self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
             self.bert_tokenizer.add_tokens("@@CITATION", special_tokens=True)
         self.use_mask = use_mask
         self.use_pattern_features = use_pattern_features
 
+
     @overrides
-    def _read(self, file_path):
-        for ex in jsonlines.open(file_path):
-            citation = read_jurgens_jsonline(ex)
-
-            if self._clean_citation:
-                citation_text = regex_find_citation.sub("", citation.text)
-            else:
-                citation_text = citation.text    
-
+    def _read(self, jsonl_file: str):
+        if self.reader_format == 'flat':
+            reader_s2 = DataReaderS2ExcerptJL(jsonl_file)
+        elif self.reader_format == 'nested':
+            # need use this
+            reader_s2 = DataReaderS2(jsonl_file)
+        for citation in reader_s2.read():
             yield self.text_to_instance(
-                citation_text=citation_text,
+                citation_text=citation.text,
                 intent=citation.intent,
                 citing_paper_id=citation.citing_paper_id,
                 cited_paper_id=citation.cited_paper_id,
+                citation_excerpt_index=citation.citation_excerpt_index,
                 sents_before=citation.sents_before,
                 sents_after=citation.sents_after,
                 cleaned_cite_text=citation.cleaned_cite_text
@@ -112,49 +111,28 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
                          cite_marker_end: int = None,
                          cleaned_cite_text: str = None,
                          citation_excerpt_index: str = None,
-                         citation_id: str = None,
                          venue: str = None) -> Instance:  # type: ignore
         result = super().text_to_instance(citation_text, citing_paper_id, cited_paper_id, intent, citing_paper_title,
                                           cited_paper_title, citing_paper_year, cited_paper_year, citing_author_ids,
                                           cited_author_ids, extended_context, section_number, section_title,
-                                          sents_before, sents_after, cite_marker_begin, cite_marker_end,
-                                          cleaned_cite_text, citation_excerpt_index, citation_id, venue)
-        # print("CIT_TEXT: ", citation_text, "CLEAN: ", cleaned_cite_text)
+                                          cite_marker_begin, cite_marker_end, sents_before, sents_after,
+                                          cleaned_cite_text, citation_excerpt_index, venue)
+
         result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(cleaned_cite_text
                                                                                                 if self.use_mask
                                                                                                 else citation_text,
                                                                                                 padding='max_length',
                                                                                                 max_length=400))
-                                                        .to(torch.int32))
+                                                        .to(torch.int32).cpu())
 
         if self.use_pattern_features:
             # sents_before[0] - citation sentence
             formulaic_features, _, _ = get_formulaic_features(sents_before[0], prefix='InCitSent:')
             agent_features, _, _ = get_agent_features(sents_before[0], prefix='InCitSent:')
 
-            # compute patterns in clause
-            formulaic_clause_features = formulaic_features
-            agent_clause_features = agent_features
-            if len(sents_before) > 1:
-                for cur_sentence in sents_before[1:]:
-                    _formulaic_features, _, _ = get_formulaic_features(cur_sentence, prefix='InClause:')
-                    _agent_features, _, _ = get_agent_features(cur_sentence, prefix='InClause:')
-                    formulaic_clause_features = [f_1 or f_2 for f_1, f_2 in zip(formulaic_clause_features,
-                                                                                _formulaic_features)]
-                    agent_clause_features = [f_1 or f_2 for f_1, f_2 in zip(agent_clause_features,
-                                                                            _agent_features)]
-            for cur_sentence in sents_after:
-                _formulaic_features, _, _ = get_formulaic_features(cur_sentence, prefix='InClause:')
-                _agent_features, _, _ = get_agent_features(cur_sentence, prefix='InClause:')
-                formulaic_clause_features = [f_1 or f_2 for f_1, f_2 in zip(formulaic_clause_features,
-                                                                            _formulaic_features)]
-                agent_clause_features = [f_1 or f_2 for f_1, f_2 in zip(agent_clause_features,
-                                                                        _agent_features)]
-
-                # TODO: norm L2
-            result.fields["pattern_features"] = ArrayField(torch.Tensor(formulaic_features + agent_features +
-                                                                        formulaic_clause_features +
-                                                                        agent_clause_features).to(torch.int32))
+            # TODO: norm L2
+            result.fields["pattern_features"] = ArrayField(torch.Tensor(formulaic_features +
+                                                                        agent_features).to(torch.int32))
 
         return result
 
@@ -165,16 +143,18 @@ class CustomAclarcDatasetReader(AclarcDatasetReader):
         use_lexicon_features = params.pop_bool("use_lexicon_features", False)
         use_sparse_lexicon_features = params.pop_bool("use_sparse_lexicon_features", False)
         use_pattern_features = params.pop_bool("use_pattern_features", False)
-        clean_citation = params.pop_bool("clean_citation", True)
+        multilabel = params.pop_bool("multilabel")
         with_elmo = params.pop_bool("with_elmo", False)
         with_bert = params.pop_bool("with_bert", False)
         use_mask = params.pop_bool("use_mask", False)
+        reader_format = params.pop("reader_format", 'nested')
         params.assert_empty(cls.__name__)
         return cls(lazy=lazy, tokenizer=tokenizer,
                    use_lexicon_features=use_lexicon_features,
                    use_sparse_lexicon_features=use_sparse_lexicon_features,
                    use_pattern_features=use_pattern_features,
-                   clean_citation=clean_citation,
+                   multilabel=multilabel,
                    with_elmo=with_elmo,
                    with_bert=with_bert,
-                   use_mask=use_mask)
+                   use_mask=use_mask,
+                   reader_format=reader_format)
