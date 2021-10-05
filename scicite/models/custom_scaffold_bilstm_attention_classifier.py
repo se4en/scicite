@@ -53,7 +53,9 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                  focal_loss: bool = False,
                  use_mask: bool = False,
                  use_cnn: bool = False,
+                 use_norm: bool = False,
                  use_glove: bool = False,
+                 norm_dim: int = None,
                  tokenizer_len: int = 31090,
                  scicite: bool = False,
                  bert_model: Optional[AutoModel] = None,
@@ -77,6 +79,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         self.use_cnn = use_cnn
         self.use_glove = use_glove
         self.scicite = scicite
+        self.use_norm = use_norm
+        self.norm_dim = norm_dim
         if self.use_glove:
             self.citation_text_encoder_2 = citation_text_encoder_2
             self.attention_seq2seq_2 = Attention(citation_text_encoder_2.get_output_dim())
@@ -85,6 +89,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                 param.requires_grad = False
             if self.use_mask:
                 self.bert_model.resize_token_embeddings(tokenizer_len)
+        if self.use_norm:
+            self.norm_layer = nn.LayerNorm(norm_dim)
         self.weighted_loss = weighted_loss
         self.focal_loss = focal_loss
 
@@ -170,6 +176,10 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                                                                           return_attn_distribution=True)
             # concat encoded texts
             encoded_citation_text = torch.cat((encoded_citation_text, encoded_citation_text_2), 1)
+            #
+            if self.use_norm:
+                encoded_citation_text = self.norm_layer(encoded_citation_text)
+
 
         # In training mode, labels are the citation intents
         # If in predict_mode, predict the citation intents
@@ -180,6 +190,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                 else:
                     new_pattern_features = pattern_features.to(torch.int32).cpu()
                 feedforward_input = torch.cat((new_pattern_features, encoded_citation_text), 1)
+                if self.use_norm:
+                    feedforward_input = self.norm_layer(feedforward_input)
                 logits = self.classifier_feedforward(feedforward_input)
             else:
                 logits = self.classifier_feedforward(encoded_citation_text)
@@ -303,6 +315,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
         tokenizer_len = int(params.pop("tokenizer_len"))
         use_mask = params.pop_bool("use_mask", False)
         scicite = params.pop_bool("is_scicite", False)
+        use_norm = params.pop_bool("use_norm", False)
+        norm_dim = int(params.pop("norm_dim"))
         data_format = params.pop('data_format')
 
         report_auxiliary_metrics = params.pop_bool("report_auxiliary_metrics", False)
@@ -328,6 +342,8 @@ class CustomScaffoldBilstmAttentionClassifier(ScaffoldBilstmAttentionClassifier)
                    use_mask=use_mask,
                    use_cnn=use_cnn,
                    use_glove=with_glove,
+                   use_norm=use_norm,
+                   norm_dim=norm_dim,
                    scicite=scicite)
 
 
