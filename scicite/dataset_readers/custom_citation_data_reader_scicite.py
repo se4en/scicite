@@ -122,6 +122,7 @@ class CustomSciciteDatasetReader(SciciteDatasetReader):
                                                                                                 if self.use_mask
                                                                                                 else citation_text,
                                                                                                 padding='max_length',
+                                                                                                truncation=True,
                                                                                                 max_length=400))
                                                         .to(torch.int32).cpu())
 
