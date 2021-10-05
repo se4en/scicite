@@ -1,0 +1,141 @@
+local stringToBool(s) =
+  if s == "true" then true
+  else if s == "false" then false
+  else error "invalid boolean: " + std.manifestJson(s);
+
+{
+  "random_seed": std.extVar("SEED"),
+  "pytorch_seed": std.extVar("PYTORCH_SEED"),
+  "numpy_seed": std.extVar("NUMPY_SEED"),
+  "mixing_ratio": 0.06,
+  "mixing_ratio2": 0.21,
+  "dataset_reader": {
+    "type": "custom_scicite_dataset_reader",
+    "use_sparse_lexicon_features": false,
+    "multilabel": false,
+    "with_bert": true,
+    "use_mask": false,
+    "with_elmo": false,
+    "reader_format": "flat",
+  },
+  "dataset_reader_aux": {
+    "type": "custom_scicite_section_title_data_reader",
+    "with_bert": true,
+    "with_elmo": false
+  },
+  "dataset_reader_aux2": {
+    "type": "custom_scicite_cite_worthiness_data_reader",
+    "with_bert": true,
+    "with_elmo": false
+  },
+  "train_data_path_aux2": "data/scicite-upd/scaffolds/cite-worthiness-scaffold-train.jsonl",
+  "train_data_path_aux": "data/scicite-upd/scaffolds/sections-scaffold-train.jsonl",
+  "train_data_path": "data/scicite-upd/train.jsonl",
+  "validation_data_path": "data/scicite-upd/dev.jsonl",
+  "test_data_path": "data/scicite-upd/test.jsonl",
+  "evaluate_on_test": true,
+  "evaluate_aux_on_test": true,
+  "model": {
+    "data_format": "scicite_flat_jsonlines",
+    "with_elmo": false,
+    "with_glove": false,
+    "with_bert": true,
+    "use_mask": false,
+    "weighted_loss": true,
+    "focal_loss": false,
+    "bert_name": "allenai/scibert_scivocab_uncased",
+    "tokenizer_len": 31091,
+    "use_pattern_features": false,
+    // "use_sparse_lexicon_features": false,
+    "type": "custom_scaffold_bilstm_attention_classifier",
+    "use_lexicon_features": false,
+    "report_auxiliary_metrics": true,
+    "multilabel": false,
+    "is_scicite": true,
+    "text_field_embedder": {
+      "tokens": {
+        "type": "embedding",
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+        "embedding_dim": 100,
+        "trainable": false
+      }
+    },
+    "elmo_text_field_embedder": {
+      "tokens": {
+        "type": "embedding",
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+        "embedding_dim": 100,
+        "trainable": false
+      },
+      "elmo": {
+        "type": "elmo_token_embedder",
+        "options_file": "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
+        "weight_file": "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
+        "do_layer_norm": true,
+        "dropout": 0.5
+      }
+    },
+    "lexicon_embedder": {
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+        "embedding_dim": 100,
+        "trainable": false,
+        "vocab_namespace": "lexicon_ids"
+    }
+    ,
+    "citation_text_encoder": {
+      "type": "gru",
+      "bidirectional": true,
+      "input_size": 768,
+      "hidden_size": 100,
+      "num_layers": 1,
+      //"dropout": 0.2
+    },
+    "classifier_feedforward": {
+      "input_dim": 200,
+      "num_layers": 2,
+      "hidden_dims": [20, 3],
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
+    },
+    "classifier_feedforward_2": {
+      "input_dim": 200,
+      "num_layers": 2,
+      "hidden_dims": [20, 5],
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
+    },
+    "classifier_feedforward_3": {
+      "input_dim": 200,
+      "num_layers": 2,
+      "hidden_dims": [20, 2],
+      "activations": ["relu", "linear"],
+      "dropout": [0.2, 0.0]
+    }
+  },
+  "iterator": {
+    "type": "bucket",
+    "sorting_keys": [["citation_text", "num_tokens"]],
+    "batch_size": 16
+  },
+  "iterator_aux": {
+    "type": "bucket",
+    "sorting_keys": [["citation_text", "num_tokens"]],
+    "batch_size": 16
+  },
+  "iterator_aux2": {
+    "type": "bucket",
+    "sorting_keys": [["citation_text", "num_tokens"]],
+    "batch_size": 16
+  },
+  "trainer": {
+    "num_epochs": 10,
+    "grad_clipping": 5.0,
+    "patience": 9,
+    "validation_metric": "+average_F1",
+    "cuda_device": 0,
+    "optimizer": {
+      "type": "adadelta",
+      "rho": 0.95
+    }
+  }
+}

@@ -45,6 +45,7 @@ class CustomSciciteSectitleDatasetReader(SciciteSectitleDatasetReader):
         result = super().text_to_instance(citation_text, citing_paper_id, cited_paper_id, intent, section_name)
         result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(citation_text,
                                                                                                 padding='max_length',
+                                                                                                truncation=True,
                                                                                                 max_length=400))
                                                         .to(torch.int32).cpu())
         return result
@@ -71,7 +72,7 @@ class CustomSciCiteWorthinessDataReader(SciCiteWorthinessDataReader):
                  with_elmo: bool = False,
                  with_bert: bool = False
                  ) -> None:
-        super().__init__(lazy, tokenizer, token_indexers, clean_citation, with_elmo)
+        super().__init__(lazy, tokenizer, clean_citation, with_elmo)
         if with_bert:
             self.bert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased", do_lower_case=True)
 
@@ -88,6 +89,7 @@ class CustomSciCiteWorthinessDataReader(SciCiteWorthinessDataReader):
                                           is_citation)
         result.fields['cit_text_for_bert'] = ArrayField(torch.Tensor(self.bert_tokenizer.encode(citation_text,
                                                                                                 padding='max_length',
+                                                                                                truncation=True,
                                                                                                 max_length=400))
                                                         .to(torch.int32).cpu())
         return result
